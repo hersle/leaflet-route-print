@@ -9,6 +9,10 @@ var tl = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 tl.addTo(map);
 map.setView(center, 15);
 
+// keep all rectangles in one group
+var rectGroup = L.layerGroup();
+rectGroup.addTo(map);
+
 function addControlButton(pos, text, title, cb) {
 	L.Control.CustomButton = L.Control.extend({
 		onAdd: function(map) {
@@ -38,7 +42,13 @@ function addControlButton(pos, text, title, cb) {
 }
 
 addControlButton("topleft", "P", "Print", function(event) {
-	console.log(event);
+	var points = routing.getWaypoints();
+	console.log(`points: ${points}`);
+
+	rectGroup.clearLayers();
+	var line = routing.toPolyline();
+	var rect = L.rectangle(line.getBounds());
+	rectGroup.addLayer(rect);
 });
 
 var routing = new L.Routing({
