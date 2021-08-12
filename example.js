@@ -40,14 +40,39 @@ function addControlButton(pos, text, title, cb) {
 	var button = new L.Control.CustomButton({position: pos});
 	button.addTo(map);
 }
+function min(a, b) {
+	return a < b ? a : b;
+}
+
+function max(a, b) {
+	return a > b ? a : b;
+}
+
+function coverLineWithRectangles(l, w, h) {
+	var xmin = l[0][0];
+	var ymin = l[0][1];
+	var xmax = l[0][0];
+	var ymax = l[0][1];
+	for (var i = 1; i < l.length; i++) {
+		var x = l[i][0];
+		var y = l[i][1];
+		xmin = min(xmin, x);
+		ymin = min(ymin, y);
+		xmax = max(xmax, x);
+		ymax = max(ymax, y);
+	}
+	return [[xmin, ymin], [xmax, ymax]];
+}
 
 addControlButton("topleft", "P", "Print", function(event) {
 	var points = routing.getWaypoints();
-	console.log(`points: ${points}`);
+	for (var i = 0; i < points.length; i++) {
+		points[i] = [points[i].lat, points[i].lng];
+	}
+	var rect = coverLineWithRectangles(points, 0, 0);
 
 	rectGroup.clearLayers();
-	var line = routing.toPolyline();
-	var rect = L.rectangle(line.getBounds());
+	var rect = L.rectangle(rect);
 	rectGroup.addLayer(rect);
 });
 
