@@ -134,23 +134,22 @@ function coverLineWithRectangles(l, w, h) {
 		var x = l[i][0];
 		var y = l[i][1];
 		var grect = growRect(rect, x, y);
-		if (i == 0 || rectIsOk(grect, w, h)) {
+		if (i == 0 || rectIsOk(grect, w, h)) { // whole segment fits in rectangle [w,h]
 			rect = grect;
-		} else {
+		} else { // segment must be divided to fit in rectangle [w,h]
 			var s = [l[i-1], l[i]];
 			var vs = [s[1][0]-s[0][0],s[1][1]-s[0][1]];
-			var bigRect = growRectBounded(rect, vs, w, h);
-			var p = intersectRectangleSegment(bigRect, s);
-			// assert p != undefined
-			rect = growRect(rect, p[0], p[1]);
-			bigRect = centerRectangle([[0,0], [w,h]], rectangleCenter(rect));
+			var bigRect = growRectBounded(rect, vs, w, h); // create rectangle as big as possible in the direction of the segment 
+			var p = intersectRectangleSegment(bigRect, s); // find where it intersects the segment
+			intersections.push(p); // store intersection point for debugging
+			l.splice(i, 0, p); // divide the segment
+			rect = growRect(rect, p[0], p[1]); // grow the cover rectangle to accomodate the intersection point
+			bigRect = centerRectangle([[0,0], [w,h]], rectangleCenter(rect)); // center the [w,h] rectangle on the area it must cover (there will be freedom in one direction only)
 			rects.push(bigRect);
-			// ??? should not happen on final point
-			intersections.push(p);
-			l.splice(i, 0, p);
-			var rect = [[l[i][0], l[i][1]], [l[i][0], l[i][1]]];
+			var rect = [[l[i][0], l[i][1]], [l[i][0], l[i][1]]]; // reset the cover rectangle for new segments
 		}
 	}
+	// also print the last segments in a [w,h] rectangle
 	var bigRect = centerRectangle([[0,0], [w,h]], rectangleCenter(rect));
 	rects.push(bigRect);
 	return [rects, intersections];
