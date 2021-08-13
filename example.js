@@ -128,11 +128,15 @@ function coverLineWithRectangles(l, w, h) {
 			rect = growRectBounded(rect, vs, w, h);
 			rects.push(rect);
 			var p = intersectRectangleSegment(rect, s);
-			intersections.push(p);
-			l.splice(i, 0, p);
+			if (p != undefined) {
+				// should not happen on final point
+				intersections.push(p);
+				l.splice(i, 0, p);
+			}
 			var rect = [[l[i][0], l[i][1]], [l[i][0], l[i][1]]];
 		}
 	}
+	rect = growRectBounded(rect, [0, 0], w, h);
 	rects.push(rect);
 	return [rects, intersections];
 }
@@ -146,7 +150,7 @@ addControlButton("topleft", "P", "Print", function(event) {
 
 	rectGroup.clearLayers();
 	for (const rect of rects) {
-		rectGroup.addLayer(L.rectangle(rect));
+		rectGroup.addLayer(L.rectangle(rect, {color: "black"}));
 	}
 	for (const p of intersections) {
 		rectGroup.addLayer(L.circleMarker(p, {color: "red"}));
