@@ -93,8 +93,8 @@ function intersectRectangleSegment(r, s) {
 }
 
 function growRectBounded(r, d, w, h) {
-	var min = r[0];
-	var max = r[1];
+	var min = r[0].slice(); // copy to avoid modifying input
+	var max = r[1].slice();
 	var size = [max[0] - min[0], max[1] - min[1]];
 
 	if (d[0] > 0) {
@@ -112,6 +112,20 @@ function growRectBounded(r, d, w, h) {
 	return [min, max];
 }
 
+function rectangleCenter(r) {
+	return [(r[0][0]+r[1][0])/2, (r[0][1]+r[1][1])/2]
+}
+
+function centerRectangle(r1, c2) {
+	var c1 = rectangleCenter(r1);
+	for (var i = 0; i < 2; i++) {
+		for (var j = 0; j < 2; j++) {
+			r1[i][j] += c2[j] - c1[j];
+		}
+	}
+	return r1;
+}
+
 function coverLineWithRectangles(l, w, h) {
 	var rects = [];
 	var intersections = [];
@@ -125,19 +139,20 @@ function coverLineWithRectangles(l, w, h) {
 		} else {
 			var s = [l[i-1], l[i]];
 			var vs = [s[1][0]-s[0][0],s[1][1]-s[0][1]];
-			rect = growRectBounded(rect, vs, w, h);
-			rects.push(rect);
-			var p = intersectRectangleSegment(rect, s);
-			if (p != undefined) {
-				// should not happen on final point
-				intersections.push(p);
-				l.splice(i, 0, p);
-			}
+			var bigRect = growRectBounded(rect, vs, w, h);
+			var p = intersectRectangleSegment(bigRect, s);
+			// assert p != undefined
+			rect = growRect(rect, p[0], p[1]);
+			bigRect = centerRectangle([[0,0], [w,h]], rectangleCenter(rect));
+			rects.push(bigRect);
+			// ??? should not happen on final point
+			intersections.push(p);
+			l.splice(i, 0, p);
 			var rect = [[l[i][0], l[i][1]], [l[i][0], l[i][1]]];
 		}
 	}
-	rect = growRectBounded(rect, [0, 0], w, h);
-	rects.push(rect);
+	var bigRect = centerRectangle([[0,0], [w,h]], rectangleCenter(rect));
+	rects.push(bigRect);
 	return [rects, intersections];
 }
 
