@@ -159,8 +159,20 @@ addControlButton("topleft", "P", "Print", function(event) {
 	var points = routing.getWaypoints();
 	for (var i = 0; i < points.length; i++) {
 		points[i] = [points[i].lat, points[i].lng];
+		// convert from geographical coordinates to pixel coordinates (so paper size becomes meaningful)
+		points[i] = map.project(points[i]);
+		points[i] = [points[i].x, points[i].y]
 	}
-	const [rects, intersections] = coverLineWithRectangles(points, 0.01, 0.01);
+	const [rects, intersections] = coverLineWithRectangles(points, 100, 100);
+
+	// convert from pixel coordinates back to geographical coordinates
+	for (var i = 0; i < intersections.length; i++) {
+		intersections[i] = map.unproject(intersections[i]);
+	}
+	for (var i = 0; i < rects.length; i++) {
+		rects[i][0] = map.unproject(rects[i][0]);
+		rects[i][1] = map.unproject(rects[i][1]);
+	}
 
 	rectGroup.clearLayers();
 	for (const rect of rects) {
