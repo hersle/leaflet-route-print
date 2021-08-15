@@ -141,6 +141,34 @@ function metersToPixels(meters) {
 	return meters / pixelsToMeters(1);
 }
 
+function printRoute(w, h) {
+	var points = routing.getWaypoints();
+	for (var i = 0; i < points.length; i++) {
+		points[i] = [points[i].lat, points[i].lng];
+		// convert from geographical coordinates to pixel coordinates (so paper size becomes meaningful)
+		points[i] = map.project(points[i]);
+		points[i] = [points[i].x, points[i].y]
+	}
+	const [rects, intersections] = coverLineWithRectangles(points, w, h);
+
+	// convert from pixel coordinates back to geographical coordinates
+	for (var i = 0; i < intersections.length; i++) {
+		intersections[i] = map.unproject(intersections[i]);
+	}
+	for (var i = 0; i < rects.length; i++) {
+		rects[i][0] = map.unproject(rects[i][0]);
+		rects[i][1] = map.unproject(rects[i][1]);
+	}
+
+	rectGroup.clearLayers();
+	for (const rect of rects) {
+		rectGroup.addLayer(L.rectangle(rect, {color: "black"}));
+	}
+	for (const p of intersections) {
+		rectGroup.addLayer(L.circleMarker(p, {color: "red"}));
+	}
+}
+
 // https://leafletjs.com/reference-0.7.7.html#icontrol
 L.Control.PrintRouteControl = L.Control.extend({
 	options: {
@@ -150,11 +178,23 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var container = L.DomUtil.create("div", "text-input leaflet-bar");
 		container.style.backgroundColor = "white";
 		container.style.padding = "0.5em";
+		container.addEventListener("click", function(event) {
+			event.stopPropagation();
+		});
+		container.addEventListener("mousedown", function(event) {
+			event.stopPropagation();
+		});
+		container.addEventListener("dblclick", function(event) {
+			event.stopPropagation();
+		});
 
 		var label1 = L.DomUtil.create("label");
 		label1.innerHTML = "<b>Print scale</b>: 1 : ";
 		var input1 = L.DomUtil.create("input");
+		input1.id = "input-scale";
 		input1.type = "text";
+		input1.style.width = "8em";
+		input1.defaultValue = "10000";
 		input1.addEventListener("input", function() {
 			console.log(`scale ${input1.value}`);
 		});
@@ -163,45 +203,37 @@ L.Control.PrintRouteControl = L.Control.extend({
 		label1.appendChild(input1);
 
 		var label2 = L.DomUtil.create("label");
-		label2.innerHTML = "<b>Print aspect ratio</b>: ";
-		var input2 = L.DomUtil.create("input");
-		input2.type = "text";
-		input2.addEventListener("input", function() {
-			console.log(`aspect ratio ${input2.value}`);
-		});
+		label2.innerHTML = "<b>Paper size</b>: ";
+		var input21 = L.DomUtil.create("input");
+		var input22 = L.DomUtil.create("input");
+		input21.id = "input-aspect-width";
+		input22.id = "input-aspect-height";
+		input21.type = "text";
+		input22.type = "text";
+		input21.style.width = "4em";
+		input22.style.width = "4em";
+		input21.defaultValue = "210";
+		input22.defaultValue = "297";
+		label2.appendChild(input21);
+		label2.innerHTML += " mm x ";
+		label2.appendChild(input22);
+		label2.innerHTML += " mm";
 		label2.style.display = "block";
-		label2.style.marginBottom = "1em";
-		label2.appendChild(input2);
 
 		var button = L.DomUtil.create("button");
 		button.innerHTML = "Print";
 		button.addEventListener("click", function(event) {
 			event.stopPropagation(); // prevent from reaching underlying map
-			var points = routing.getWaypoints();
-			for (var i = 0; i < points.length; i++) {
-				points[i] = [points[i].lat, points[i].lng];
-				// convert from geographical coordinates to pixel coordinates (so paper size becomes meaningful)
-				points[i] = map.project(points[i]);
-				points[i] = [points[i].x, points[i].y]
-			}
-			const [rects, intersections] = coverLineWithRectangles(points, 100, 100);
-
-			// convert from pixel coordinates back to geographical coordinates
-			for (var i = 0; i < intersections.length; i++) {
-				intersections[i] = map.unproject(intersections[i]);
-			}
-			for (var i = 0; i < rects.length; i++) {
-				rects[i][0] = map.unproject(rects[i][0]);
-				rects[i][1] = map.unproject(rects[i][1]);
-			}
-
-			rectGroup.clearLayers();
-			for (const rect of rects) {
-				rectGroup.addLayer(L.rectangle(rect, {color: "black"}));
-			}
-			for (const p of intersections) {
-				rectGroup.addLayer(L.circleMarker(p, {color: "red"}));
-			}
+			var s = parseInt(document.getElementById("input-scale").value);
+			var wmmPaper = parseInt(document.getElementById("input-aspect-width").value);
+			var hmmPaper = parseInt(document.getElementById("input-aspect-height").value);
+			var paperToWorld = 1 / s;
+			var worldToPaper = s;
+			var wmmWorld = wmmPaper * s;
+			var hmmWorld = hmmPaper * s;
+			var wpxWorld = metersToPixels(wmmWorld / 1000);
+			var hpxWorld = metersToPixels(hmmWorld / 1000);
+			printRoute(wpxWorld, hpxWorld);
 		});
 
 		container.appendChild(label1);
