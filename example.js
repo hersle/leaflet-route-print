@@ -265,6 +265,19 @@ function printRouteFromInputs() {
 	printRoute(wpxWorld, hpxWorld);
 }
 
+async function addGeoJson() {
+	var line = [];
+	for (var feature of geojson.features) {
+		var coords = feature.geometry.coordinates;
+		coords = [coords[1], coords[0]];
+		line.push(coords);
+	}
+	line = L.polyline(line);
+	map.addLayer(line);
+	map.fitBounds(line.getBounds());
+}
+addGeoJson();
+
 map.addControl(routing);
 map.addControl(new L.Control.PrintRouteControl());
 routing.draw(true);
