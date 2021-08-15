@@ -198,9 +198,6 @@ L.Control.PrintRouteControl = L.Control.extend({
 		input1.type = "text";
 		input1.style.width = "8em";
 		input1.defaultValue = "10000";
-		input1.addEventListener("input", function() {
-			console.log(`scale ${input1.value}`);
-		});
 		label1.style.display = "block";
 		label1.style.marginBottom = "1em";
 		label1.appendChild(input1);
@@ -223,29 +220,12 @@ L.Control.PrintRouteControl = L.Control.extend({
 		label2.innerHTML += " mm";
 		label2.style.display = "block";
 
-		var button = L.DomUtil.create("button");
-		button.innerHTML = "Print";
-		button.addEventListener("click", function(event) {
-			event.stopPropagation(); // prevent from reaching underlying map
-			var s = parseInt(document.getElementById("input-scale").value);
-			var wmmPaper = parseInt(document.getElementById("input-aspect-width").value);
-			var hmmPaper = parseInt(document.getElementById("input-aspect-height").value);
-			var paperToWorld = 1 / s;
-			var worldToPaper = s;
-			var wmmWorld = wmmPaper * s;
-			var hmmWorld = hmmPaper * s;
-			var wpxWorld = metersToPixels(wmmWorld / 1000);
-			var hpxWorld = metersToPixels(hmmWorld / 1000);
-			printRoute(wpxWorld, hpxWorld);
-		});
-
 		container.appendChild(label1);
 		container.appendChild(label2);
-		container.appendChild(button);
+
 		return container;
 	},
 });
-map.addControl(new L.Control.PrintRouteControl());
 
 var routing = new L.Routing({
 	position: 'topright',
@@ -271,5 +251,25 @@ var routing = new L.Routing({
 		}
 	}
 });
+
+function printRouteFromInputs() {
+	var s = parseInt(document.getElementById("input-scale").value);
+	var wmmPaper = parseInt(document.getElementById("input-aspect-width").value);
+	var hmmPaper = parseInt(document.getElementById("input-aspect-height").value);
+	var paperToWorld = 1 / s;
+	var worldToPaper = s;
+	var wmmWorld = wmmPaper * s;
+	var hmmWorld = hmmPaper * s;
+	var wpxWorld = metersToPixels(wmmWorld / 1000);
+	var hpxWorld = metersToPixels(hmmWorld / 1000);
+	printRoute(wpxWorld, hpxWorld);
+}
+
 map.addControl(routing);
+map.addControl(new L.Control.PrintRouteControl());
 routing.draw(true);
+
+document.getElementById("input-scale").addEventListener("input", printRouteFromInputs);
+document.getElementById("input-aspect-width").addEventListener("input", printRouteFromInputs);
+document.getElementById("input-aspect-height").addEventListener("input", printRouteFromInputs);
+routing.addEventListener("routing:routeWaypointStart", printRouteFromInputs);
