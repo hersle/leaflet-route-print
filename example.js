@@ -14,33 +14,6 @@ map.setView(center, 15);
 var rectGroup = L.layerGroup();
 rectGroup.addTo(map);
 
-function addControlButton(pos, text, title, cb) {
-	L.Control.CustomButton = L.Control.extend({
-		onAdd: function(map) {
-			var div = document.createElement("div");
-			div.className += " leaflet-bar";
-			var el = document.createElement("a");
-			el.innerHTML = text;
-			el.className += " leaflet-control-zoom-in";
-			el.style += " vertical-align: middle;";
-			el.href = "#";
-			el.title = title;
-			el.setAttribute("aria-label", title);
-			el.role = "Button";
-			div.appendChild(el);
-			L.DomEvent.on(el, "click", function(event) {
-				L.DomEvent.stopPropagation(event); // prevent from reaching underlying map
-				cb(event);
-			});
-			return div;
-		},
-		onRemove: function(map) {
-		},
-	});
-
-	var button = new L.Control.CustomButton({position: pos});
-	button.addTo(map);
-}
 function min(a, b) {
 	return a < b ? a : b;
 }
@@ -168,33 +141,76 @@ function metersToPixels(meters) {
 	return meters / pixelsToMeters(1);
 }
 
-addControlButton("topleft", "P", "Print", function(event) {
-	var points = routing.getWaypoints();
-	for (var i = 0; i < points.length; i++) {
-		points[i] = [points[i].lat, points[i].lng];
-		// convert from geographical coordinates to pixel coordinates (so paper size becomes meaningful)
-		points[i] = map.project(points[i]);
-		points[i] = [points[i].x, points[i].y]
-	}
-	const [rects, intersections] = coverLineWithRectangles(points, 100, 100);
+// https://leafletjs.com/reference-0.7.7.html#icontrol
+L.Control.PrintRouteControl = L.Control.extend({
+	options: {
+		position: "topright",
+	},
+	onAdd: function(map) {
+		var container = L.DomUtil.create("div", "text-input leaflet-bar");
+		container.style.backgroundColor = "white";
+		container.style.padding = "0.5em";
 
-	// convert from pixel coordinates back to geographical coordinates
-	for (var i = 0; i < intersections.length; i++) {
-		intersections[i] = map.unproject(intersections[i]);
-	}
-	for (var i = 0; i < rects.length; i++) {
-		rects[i][0] = map.unproject(rects[i][0]);
-		rects[i][1] = map.unproject(rects[i][1]);
-	}
+		var label1 = L.DomUtil.create("label");
+		label1.innerHTML = "<b>Print scale</b>: 1 : ";
+		var input1 = L.DomUtil.create("input");
+		input1.type = "text";
+		input1.addEventListener("input", function() {
+			console.log(`scale ${input1.value}`);
+		});
+		label1.style.display = "block";
+		label1.style.marginBottom = "1em";
+		label1.appendChild(input1);
 
-	rectGroup.clearLayers();
-	for (const rect of rects) {
-		rectGroup.addLayer(L.rectangle(rect, {color: "black"}));
-	}
-	for (const p of intersections) {
-		rectGroup.addLayer(L.circleMarker(p, {color: "red"}));
-	}
+		var label2 = L.DomUtil.create("label");
+		label2.innerHTML = "<b>Print aspect ratio</b>: ";
+		var input2 = L.DomUtil.create("input");
+		input2.type = "text";
+		input2.addEventListener("input", function() {
+			console.log(`aspect ratio ${input2.value}`);
+		});
+		label2.style.display = "block";
+		label2.style.marginBottom = "1em";
+		label2.appendChild(input2);
+
+		var button = L.DomUtil.create("button");
+		button.innerHTML = "Print";
+		button.addEventListener("click", function(event) {
+			event.stopPropagation(); // prevent from reaching underlying map
+			var points = routing.getWaypoints();
+			for (var i = 0; i < points.length; i++) {
+				points[i] = [points[i].lat, points[i].lng];
+				// convert from geographical coordinates to pixel coordinates (so paper size becomes meaningful)
+				points[i] = map.project(points[i]);
+				points[i] = [points[i].x, points[i].y]
+			}
+			const [rects, intersections] = coverLineWithRectangles(points, 100, 100);
+
+			// convert from pixel coordinates back to geographical coordinates
+			for (var i = 0; i < intersections.length; i++) {
+				intersections[i] = map.unproject(intersections[i]);
+			}
+			for (var i = 0; i < rects.length; i++) {
+				rects[i][0] = map.unproject(rects[i][0]);
+				rects[i][1] = map.unproject(rects[i][1]);
+			}
+
+			rectGroup.clearLayers();
+			for (const rect of rects) {
+				rectGroup.addLayer(L.rectangle(rect, {color: "black"}));
+			}
+			for (const p of intersections) {
+				rectGroup.addLayer(L.circleMarker(p, {color: "red"}));
+			}
+		});
+
+		container.appendChild(label1);
+		container.appendChild(label2);
+		container.appendChild(button);
+		return container;
+	},
 });
+map.addControl(new L.Control.PrintRouteControl());
 
 var routing = new L.Routing({
 	position: 'topright',
