@@ -7,6 +7,7 @@ var tl = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 });
 tl.addTo(map);
+L.control.scale({metric: true, imperial: false}).addTo(map);
 map.setView(center, 15);
 
 // keep all rectangles in one group
@@ -153,6 +154,18 @@ function coverLineWithRectangles(l, w, h) {
 	var bigRect = centerRectangle([[0,0], [w,h]], rectangleCenter(rect));
 	rects.push(bigRect);
 	return [rects, intersections];
+}
+
+function pixelsToMeters(pixels) {
+	// https://stackoverflow.com/questions/49122416/use-value-from-scale-bar-on-a-leaflet-map
+	var containerMidHeight = map.getSize().y / 2,
+	point1 = map.containerPointToLatLng([0, containerMidHeight]),
+	point2 = map.containerPointToLatLng([pixels, containerMidHeight]);
+	return point1.distanceTo(point2);
+}
+
+function metersToPixels(meters) {
+	return meters / pixelsToMeters(1);
 }
 
 addControlButton("topleft", "P", "Print", function(event) {
