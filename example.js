@@ -143,6 +143,9 @@ function metersToPixels(meters) {
 
 function printRoute(w, h) {
 	var points = routing.getWaypoints();
+	if (points.length == 0) {
+		return;
+	}
 	for (var i = 0; i < points.length; i++) {
 		points[i] = [points[i].lat, points[i].lng];
 		// convert from geographical coordinates to pixel coordinates (so paper size becomes meaningful)
