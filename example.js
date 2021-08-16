@@ -197,7 +197,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		position: "topright",
 	},
 	onAdd: function(map) {
-		var container = L.DomUtil.create("div", "text-input leaflet-bar");
+		var container = L.DomUtil.create("form", "text-input leaflet-bar");
 		container.style.backgroundColor = "white";
 		container.style.padding = "0.5em";
 		container.addEventListener("click", function(event) {
@@ -210,45 +210,63 @@ L.Control.PrintRouteControl = L.Control.extend({
 			event.stopPropagation();
 		});
 
-		var label1 = L.DomUtil.create("label");
-		label1.innerHTML = "<b>Print scale</b>: 1 : ";
-		var input1 = L.DomUtil.create("input");
-		input1.id = "input-scale";
-		input1.type = "text";
-		input1.style.width = "8em";
-		input1.defaultValue = "500000";
-		label1.style.display = "block";
-		label1.style.marginBottom = "1em";
-		label1.appendChild(input1);
+		var p1 = L.DomUtil.create("p");
+		var p2 = L.DomUtil.create("p");
+		var p3 = L.DomUtil.create("p");
 
-		var label2 = L.DomUtil.create("label");
-		label2.innerHTML = "<b>Paper size</b>: ";
-		var input21 = L.DomUtil.create("input");
-		var input22 = L.DomUtil.create("input");
-		input21.id = "input-aspect-width";
-		input22.id = "input-aspect-height";
-		input21.type = "text";
-		input22.type = "text";
-		input21.style.width = "4em";
-		input22.style.width = "4em";
-		input21.defaultValue = "210";
-		input22.defaultValue = "297";
-		label2.appendChild(input21);
-		label2.innerHTML += " mm x ";
-		label2.appendChild(input22);
-		label2.innerHTML += " mm";
-		label2.style.display = "block";
-		label2.style.marginBottom = "1em";
+		var i11 = L.DomUtil.create("input");
+		var i12 = L.DomUtil.create("input");
+		var i21 = L.DomUtil.create("input");
+		var i22 = L.DomUtil.create("input");
+		var b3  = L.DomUtil.create("button");
+		i11.id = "input-scale-paper";
+		i12.id = "input-scale-world";
+		i21.id = "input-aspect-width";
+		i22.id = "input-aspect-height";
+		i11.defaultValue = 1;
+		i12.defaultValue = 100000;
+		i21.defaultValue = 210;
+		i22.defaultValue = 297;
+		i11.size = 1;
+		i12.size = 6;
+		i21.size = 4;
+		i22.size = 4;
+		i11.type = "number";
+		i12.type = "number";
+		i21.type = "number";
+		i22.type = "number";
+		b3.id = "input-print";
+		b3.innerHTML = "Print as PDF";
+		b3.style.display = "block";
+		b3.style.width = "100%";
 
-		var button = L.DomUtil.create("button");
-		button.innerHTML = "Print to PDF";
-		button.id = "input-print";
-		button.style.width = "100%";
-		button.addEventListener("click", function() {});
+		var l1 = L.DomUtil.create("label");
+		var l2 = L.DomUtil.create("label");
+		var l3 = L.DomUtil.create("label");
+		l1.innerHTML = "Print scale:";
+		l2.innerHTML = "Print aspect ratio:";
+		l3.innerHTML = "Print:";
+		l1.for = i11.id + " " + i11.id;
+		l2.for = i21.id + " " + i21.id;
+		l3.for = b3.id;
 
-		container.appendChild(label1);
-		container.appendChild(label2);
-		container.appendChild(button);
+		p1.appendChild(l1);
+		p1.appendChild(i11);
+		p1.innerHTML += " : ";
+		p1.appendChild(i12);
+
+		p2.appendChild(l2);
+		p2.appendChild(i21);
+		p2.innerHTML += " mm x ";
+		p2.appendChild(i22);
+		p2.innerHTML += " mm";
+
+		p3.appendChild(l3);
+		p3.appendChild(b3);
+
+		container.appendChild(p1);
+		container.appendChild(p2);
+		container.appendChild(p3);
 
 		return container;
 	},
@@ -292,7 +310,15 @@ async function printMap(r) {
 var points = [];
 
 function previewRoutePrint() {
-	console.log("preview");
+	// keep input fields as wide as they need to be
+	var i11 = document.getElementById("input-scale-paper");
+	var i12 = document.getElementById("input-scale-world");
+	var i21 = document.getElementById("input-aspect-width");
+	var i22 = document.getElementById("input-aspect-height");
+	i11.size = max(1, i11.value.toString().length+1);
+	i12.size = max(1, i12.value.toString().length+1);
+	i21.size = max(1, i21.value.toString().length+1);
+	i22.size = max(1, i22.value.toString().length+1);
 	printRouteWrapper(false);
 }
 
@@ -301,13 +327,14 @@ function printRouteFromInputs() {
 }
 
 async function printRouteWrapper(print) {
-	var s = parseInt(document.getElementById("input-scale").value);
+	var sPaper = parseInt(document.getElementById("input-scale-paper").value);
+	var sWorld = parseInt(document.getElementById("input-scale-world").value);
 	var wmmPaper = parseInt(document.getElementById("input-aspect-width").value);
 	var hmmPaper = parseInt(document.getElementById("input-aspect-height").value);
-	var paperToWorld = 1 / s;
-	var worldToPaper = s;
-	var wmmWorld = wmmPaper * s;
-	var hmmWorld = hmmPaper * s;
+	var paperToWorld = sPaper / sWorld;
+	var worldToPaper = 1 / paperToWorld;
+	var wmmWorld = wmmPaper * worldToPaper;
+	var hmmWorld = hmmPaper * worldToPaper;
 	var wpxWorld = metersToPixels(wmmWorld / 1000);
 	var hpxWorld = metersToPixels(hmmWorld / 1000);
 	var rects = printRoute(points, wpxWorld, hpxWorld);
@@ -353,7 +380,8 @@ function addGeoJson() {
 
 addGeoJson();
 map.addControl(new L.Control.PrintRouteControl());
-document.getElementById("input-scale").addEventListener("input", previewRoutePrint);
+document.getElementById("input-scale-paper").addEventListener("input", previewRoutePrint);
+document.getElementById("input-scale-world").addEventListener("input", previewRoutePrint);
 document.getElementById("input-aspect-width").addEventListener("input", previewRoutePrint);
 document.getElementById("input-aspect-height").addEventListener("input", previewRoutePrint);
 document.getElementById("input-print").addEventListener("click", printRouteFromInputs);

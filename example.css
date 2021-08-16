@@ -1,3 +1,10 @@
 body {
 	margin: 0;
 }
+
+/* from https://stackoverflow.com/a/23741073/3527139 */
+form   { display: table;      border-spacing: 0.5em; vertical-align: middle; }
+p      { display: table-row;  }
+label  { display: table-cell; font-weight: bold; }
+input  { display: table-cell; }
+button { display: table-cell; }
