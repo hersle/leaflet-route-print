@@ -191,6 +191,24 @@ function printRoute(ll, w, h) {
 	return rects;
 }
 
+// list paper sizes from https://en.wikipedia.org/wiki/Paper_size#Overview_of_ISO_paper_sizes
+var paperSizes = [];
+for (var n = 0; n <= 10; n++) {
+	var w = Math.floor(841  / 2**(n/2));
+	var h = Math.floor(1189 / 2**(n/2));
+	paperSizes.push({name: `A${n}`, width: w, height: h});
+}
+for (var n = 0; n <= 10; n++) {
+	var w = Math.floor(1000 / 2**(n/2));
+	var h = Math.floor(1414 / 2**(n/2));
+	paperSizes.push({name: `B${n}`, width: w, height: h});
+}
+for (var n = 0; n <= 10; n++) {
+	var w = Math.floor(917  / 2**(n/2));
+	var h = Math.floor(1297 / 2**(n/2));
+	paperSizes.push({name: `C${n}`, width: w, height: h});
+}
+
 // https://leafletjs.com/reference-0.7.7.html#icontrol
 L.Control.PrintRouteControl = L.Control.extend({
 	options: {
@@ -218,19 +236,16 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var i12 = L.DomUtil.create("input");
 		var i21 = L.DomUtil.create("input");
 		var i22 = L.DomUtil.create("input");
+		var s   = L.DomUtil.create("select");
 		var b3  = L.DomUtil.create("button");
 		i11.id = "input-scale-paper";
 		i12.id = "input-scale-world";
-		i21.id = "input-aspect-width";
-		i22.id = "input-aspect-height";
+		i21.id = "input-size-width";
+		i22.id = "input-size-height";
 		i11.defaultValue = 1;
 		i12.defaultValue = 100000;
 		i21.defaultValue = 210;
 		i22.defaultValue = 297;
-		i11.size = 1;
-		i12.size = 6;
-		i21.size = 4;
-		i22.size = 4;
 		i11.type = "number";
 		i12.type = "number";
 		i21.type = "number";
@@ -239,12 +254,24 @@ L.Control.PrintRouteControl = L.Control.extend({
 		b3.innerHTML = "Print as PDF";
 		b3.style.display = "block";
 		b3.style.width = "100%";
+		s.id = "input-size-preset";
+
+		var opt = document.createElement("option");
+		opt.innerHTML = "custom";
+		opt.value = "custom";
+		s.appendChild(opt);
+		for (var paperSize of paperSizes) {
+			var opt = document.createElement("option");
+			opt.innerHTML = paperSize.name;
+			opt.value = paperSize.name;
+			s.appendChild(opt);
+        }
 
 		var l1 = L.DomUtil.create("label");
 		var l2 = L.DomUtil.create("label");
 		var l3 = L.DomUtil.create("label");
 		l1.innerHTML = "Print scale:";
-		l2.innerHTML = "Print aspect ratio:";
+		l2.innerHTML = "Paper size:";
 		l3.innerHTML = "Print:";
 		l1.for = i11.id + " " + i11.id;
 		l2.for = i21.id + " " + i21.id;
@@ -259,7 +286,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 		p2.appendChild(i21);
 		p2.innerHTML += " mm x ";
 		p2.appendChild(i22);
-		p2.innerHTML += " mm";
+		p2.innerHTML += " mm = ";
+		p2.appendChild(s);
 
 		p3.appendChild(l3);
 		p3.appendChild(b3);
@@ -313,8 +341,8 @@ function previewRoutePrint() {
 	// keep input fields as wide as they need to be
 	var i11 = document.getElementById("input-scale-paper");
 	var i12 = document.getElementById("input-scale-world");
-	var i21 = document.getElementById("input-aspect-width");
-	var i22 = document.getElementById("input-aspect-height");
+	var i21 = document.getElementById("input-size-width");
+	var i22 = document.getElementById("input-size-height");
 	i11.size = max(1, i11.value.toString().length+1);
 	i12.size = max(1, i12.value.toString().length+1);
 	i21.size = max(1, i21.value.toString().length+1);
@@ -329,8 +357,8 @@ function printRouteFromInputs() {
 async function printRouteWrapper(print) {
 	var sPaper = parseInt(document.getElementById("input-scale-paper").value);
 	var sWorld = parseInt(document.getElementById("input-scale-world").value);
-	var wmmPaper = parseInt(document.getElementById("input-aspect-width").value);
-	var hmmPaper = parseInt(document.getElementById("input-aspect-height").value);
+	var wmmPaper = parseInt(document.getElementById("input-size-width").value);
+	var hmmPaper = parseInt(document.getElementById("input-size-height").value);
 	var paperToWorld = sPaper / sWorld;
 	var worldToPaper = 1 / paperToWorld;
 	var wmmWorld = wmmPaper * worldToPaper;
@@ -382,7 +410,22 @@ addGeoJson();
 map.addControl(new L.Control.PrintRouteControl());
 document.getElementById("input-scale-paper").addEventListener("input", previewRoutePrint);
 document.getElementById("input-scale-world").addEventListener("input", previewRoutePrint);
-document.getElementById("input-aspect-width").addEventListener("input", previewRoutePrint);
-document.getElementById("input-aspect-height").addEventListener("input", previewRoutePrint);
+document.getElementById("input-size-width").addEventListener("input", previewRoutePrint);
+document.getElementById("input-size-height").addEventListener("input", previewRoutePrint);
 document.getElementById("input-print").addEventListener("click", printRouteFromInputs);
+document.getElementById("input-size-preset").addEventListener("input", function(event) {
+	if (this.selectedIndex > 0) { // 0 is "custom"
+		document.getElementById("input-size-width").value = paperSizes[this.selectedIndex-1].width;
+		document.getElementById("input-size-height").value = paperSizes[this.selectedIndex-1].height;
+		previewRoutePrint();
+	}
+});
+function onInputSizeChange(event) {
+	var w = document.getElementById("input-size-width").value;
+	var h = document.getElementById("input-size-height").value;
+	var i = paperSizes.findIndex(size => size.width == w && size.height == h);
+	document.getElementById("input-size-preset").selectedIndex = i+1;
+}
+document.getElementById("input-size-width").addEventListener("input", onInputSizeChange);
+document.getElementById("input-size-height").addEventListener("input", onInputSizeChange);
 previewRoutePrint();
