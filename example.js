@@ -245,7 +245,7 @@ function sleep(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function printMap(r) {
+async function printMap(r) {
 	var rect = [[r[0][0], r[0][1]], [r[1][0], r[1][1]]]; // copy
 	rect[0] = map.project(rect[0]);
 	rect[1] = map.project(rect[1]);
@@ -264,12 +264,18 @@ function printMap(r) {
 	map.invalidateSize();
 
 	var img = document.createElement("img");
+	var finished = false;
 	leafletImage(map, function(err, canvas) {
 		var dim = map.getSize();
 		img.width = dim.x;
 		img.height = dim.y;
 		img.src = canvas.toDataURL();
+		finished = true;
 	});
+
+	while (!finished) { // wait for the callback to finish before returning, so that this image is generated before attempting to generate the next image
+		await sleep(100); // TODO: rewrite everything to use events/callbacks instead of sleep
+	}
 	return img;
 }
 
@@ -289,8 +295,8 @@ async function printRouteFromInputs() {
 
 	document.getElementById("images").innerHTML = "";
 	for (var rect of rects) {
-		var img = printMap(rect);
-		await sleep(2000); // TODO: BUGGY, AD-HOC FIX, REMOVE!!
+		var img = await printMap(rect);
+		//await sleep(2000); // TODO: BUGGY, AD-HOC FIX, REMOVE!!
 		document.getElementById("images").appendChild(img);
 	}
 }
