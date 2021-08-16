@@ -2,6 +2,11 @@ var centerlat = 61.1088956;
 var centerlon = 10.4665695;
 var center = [centerlat, centerlon];
 
+// map.getContainer().style will NOT return values set in stylesheet,
+// so set them here instead
+document.getElementById("map").style.width = "100vw";
+document.getElementById("map").style.height = "100vh";
+
 var map = L.map("map", {
 	preferCanvas: true
 });
@@ -293,6 +298,9 @@ async function printRouteFromInputs() {
 	var rects = printRoute(points, wpxWorld, hpxWorld);
 	rectGroup.clearLayers();
 
+	var originalWidth = map.getContainer().style.width;
+	var originalHeight = map.getContainer().style.height;
+
 	var pdf = new jspdf.jsPDF();
 	document.getElementById("images").innerHTML = "";
 	for (var i = 0; i < rects.length; i++) {
@@ -306,6 +314,10 @@ async function printRouteFromInputs() {
 		pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper);
 	}
 	pdf.save("pdf.pdf");
+
+	map.getContainer().style.width = originalWidth;
+	map.getContainer().style.height = originalHeight;
+	map.invalidateSize();
 }
 
 var line;
