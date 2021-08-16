@@ -229,85 +229,61 @@ L.Control.PrintRouteControl = L.Control.extend({
 		});
 
 		var p1 = L.DomUtil.create("p");
-		var p2 = L.DomUtil.create("p");
-		var p3 = L.DomUtil.create("p");
-		var p4 = L.DomUtil.create("p");
-
+		var l1 = L.DomUtil.create("label");
 		var i11 = L.DomUtil.create("input");
 		var i12 = L.DomUtil.create("input");
+		i11.id = "input-scale-paper";
+		i11.type = "number";
+		i11.defaultValue = 1;
+		i12.id = "input-scale-world";
+		i12.type = "number";
+		i12.defaultValue = 100000;
+		l1.innerHTML = "Print scale:";
+		l1.for = i11.id + " " + i11.id;
+		p1.append(l1, i11, " : ", i12);
+		container.append(p1);
+
+		var p2 = L.DomUtil.create("p");
+		var l2 = L.DomUtil.create("label");
 		var i21 = L.DomUtil.create("input");
 		var i22 = L.DomUtil.create("input");
-		var s3  = L.DomUtil.create("select");
-		var s   = L.DomUtil.create("select");
-		var b4  = L.DomUtil.create("button");
-		i11.id = "input-scale-paper";
-		i12.id = "input-scale-world";
+		var s2  = L.DomUtil.create("select");
 		i21.id = "input-size-width";
-		i22.id = "input-size-height";
-		s3.id  = "input-orientation";
-		i11.defaultValue = 1;
-		i12.defaultValue = 100000;
-		i21.defaultValue = 210;
-		i22.defaultValue = 297;
-		i22.defaultValue = 297;
-		s3.appendChild(new Option("Portrait", "portrait"));
-		s3.appendChild(new Option("Landscape", "landscape"));
-		i11.type = "number";
-		i12.type = "number";
 		i21.type = "number";
+		i21.defaultValue = 210;
+		i22.id = "input-size-height";
 		i22.type = "number";
+		i22.defaultValue = 297;
+		s2.id = "input-size-preset";
+		s2.append(new Option("custom"));
+		for (var paperSize of paperSizes) {
+			s2.append(new Option(paperSize.name));
+        }
+		l2.innerHTML = "Paper size:";
+		l2.for = i21.id + " " + i21.id;
+		p2.append(l2, i21, " mm x ", i22, " mm = ", s2);
+		container.append(p2);
+
+		var p3 = L.DomUtil.create("p");
+		var l3 = L.DomUtil.create("label");
+		var s3  = L.DomUtil.create("select");
+		s3.id  = "input-orientation";
+		l3.innerHTML = "Orientation:";
+		s3.append(new Option("Portrait", "portrait"), new Option("Landscape", "landscape"));
+		l3.for = s3.id;
+		p3.append(l3, s3);
+		container.append(p3);
+
+		var p4 = L.DomUtil.create("p");
+		var l4 = L.DomUtil.create("label");
+		var b4  = L.DomUtil.create("button");
 		b4.id = "input-print";
 		b4.innerHTML = "Print as PDF";
 		b4.style.display = "block";
-		b4.style.width = "100%";
-		s.id = "input-size-preset";
-
-		var opt = document.createElement("option");
-		opt.innerHTML = "custom";
-		opt.value = "custom";
-		s.appendChild(opt);
-		for (var paperSize of paperSizes) {
-			var opt = document.createElement("option");
-			opt.innerHTML = paperSize.name;
-			opt.value = paperSize.name;
-			s.appendChild(opt);
-        }
-
-		var l1 = L.DomUtil.create("label");
-		var l2 = L.DomUtil.create("label");
-		var l3 = L.DomUtil.create("label");
-		var l4 = L.DomUtil.create("label");
-		l1.innerHTML = "Print scale:";
-		l2.innerHTML = "Paper size:";
-		l3.innerHTML = "Orientation:";
 		l4.innerHTML = "Print:";
-		l1.for = i11.id + " " + i11.id;
-		l2.for = i21.id + " " + i21.id;
-		l3.for = s3.id;
 		l4.for = b4.id;
-
-		p1.appendChild(l1);
-		p1.appendChild(i11);
-		p1.innerHTML += " : ";
-		p1.appendChild(i12);
-
-		p2.appendChild(l2);
-		p2.appendChild(i21);
-		p2.innerHTML += " mm x ";
-		p2.appendChild(i22);
-		p2.innerHTML += " mm = ";
-		p2.appendChild(s);
-
-		p3.appendChild(l3);
-		p3.appendChild(s3);
-
-		p4.appendChild(l4);
-		p4.appendChild(b4);
-
-		container.appendChild(p1);
-		container.appendChild(p2);
-		container.appendChild(p3);
-		container.appendChild(p4);
+		p4.append(l4, b4);
+		container.append(p4);
 
 		return container;
 	},
