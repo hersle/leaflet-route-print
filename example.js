@@ -152,6 +152,7 @@ function coverLineWithRectangles(l, w, h) {
 	return [rects, intersections];
 }
 
+// TODO: this should be done at the rectangle position(s), NOT at the map view position
 function pixelsToMeters(pixels) {
 	// https://stackoverflow.com/questions/49122416/use-value-from-scale-bar-on-a-leaflet-map
 	var containerMidHeight = map.getSize().y / 2,
@@ -162,6 +163,12 @@ function pixelsToMeters(pixels) {
 
 function metersToPixels(meters) {
 	return meters / pixelsToMeters(1);
+}
+
+function dpi(wmmWorld, latitude) {
+	// see https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Resolution_and_Scale
+	var metersPerPixel = 156543.03 * Math.cos(latitude/180*Math.PI) / (2**map.getZoom());
+	return Math.floor((wmmWorld / 1000) / metersPerPixel);
 }
 
 function printRoute(ll, w, h, p) {
@@ -316,14 +323,22 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		var p6 = L.DomUtil.create("p");
 		var l6 = L.DomUtil.create("label");
-		var b6  = L.DomUtil.create("button");
-		b6.id = "input-print";
-		b6.innerHTML = "Print as PDF";
-		b6.style.display = "block";
-		l6.innerHTML = "Print:";
-		l6.for = b6.id;
-		p6.append(l6, b6);
+		var i6 = L.DomUtil.create("span");
+		l6.innerHTML = "DPI:";
+		i6.id = "input-dpi";
+		p6.append(l6, i6);
 		container.append(p6);
+
+		var p7 = L.DomUtil.create("p");
+		var l7 = L.DomUtil.create("label");
+		var b7  = L.DomUtil.create("button");
+		b7.id = "input-print";
+		b7.innerHTML = "Print as PDF";
+		b7.style.display = "block";
+		l7.innerHTML = "Print:";
+		l7.for = b7.id;
+		p7.append(l7, b7);
+		container.append(p7);
 
 		return container;
 	},
@@ -359,7 +374,7 @@ async function printMap(r) {
 	});
 
 	while (!finished) { // wait for the callback to finish before returning, so that this image is generated before attempting to generate the next image
-		await sleep(100); // TODO: rewrite everything to use events/callbacks instead of sleep
+		await sleep(2000); // TODO: rewrite everything to use events/callbacks instead of sleep
 	}
 	return imgDataUrl;
 }
@@ -401,9 +416,13 @@ async function printRouteWrapper(print) {
 	var wmmWorld = wmmPaper * worldToPaper;
 	var hmmWorld = hmmPaper * worldToPaper;
 	var pmmWorld = pmmPaper * worldToPaper;
+
 	var wpxWorld = metersToPixels(wmmWorld / 1000);
 	var hpxWorld = metersToPixels(hmmWorld / 1000);
 	var ppxWorld = metersToPixels(pmmWorld / 1000);
+
+	document.getElementById("input-dpi").innerHTML = dpi(wmmWorld, map.getCenter().lat); // TODO: calculate at rectangle coordinates, NOT at map view center
+
 	var rects = printRoute(points, wpxWorld, hpxWorld, ppxWorld);
 
 	document.getElementById("input-pages").innerHTML = rects.length;
@@ -477,4 +496,5 @@ document.getElementById("input-size-height").addEventListener("input", onInputSi
 document.getElementById("input-orientation").addEventListener("change", previewRoutePrint);
 document.getElementById("input-padding").addEventListener("input", previewRoutePrint);
 document.getElementById("input-padding-preview").addEventListener("change", previewRoutePrint);
+map.addEventListener("zoomend", previewRoutePrint); // just for updating DPI value TODO: remove/optimize
 previewRoutePrint();
