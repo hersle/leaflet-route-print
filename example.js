@@ -181,6 +181,7 @@ function printRoute(ll, w, h, p) {
 		intersections[i] = map.unproject(intersections[i]);
 	}
 	rectGroup.clearLayers();
+	var showPadding = document.getElementById("input-padding-preview").checked;
 	for (var i = 0; i < rects.length; i++) {
 		var orgrect = [[rects[i][0][0], rects[i][0][1]], [rects[i][1][0], rects[i][1][1]]];
 		orgrect[0] = map.unproject(orgrect[0]);
@@ -195,7 +196,9 @@ function printRoute(ll, w, h, p) {
 		rects[i][1] = [rects[i][1].lat, rects[i][1].lng];
 
 		L.rectangle(rects[i], {stroke: true, weight: 1, opacity: 1, color: "black", fillColor: "grey", fillOpacity: 1.0, pane: "rectangles"}).addTo(rectGroup);
-		L.rectangle(orgrect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "red", pane: "rectangles"}).addTo(rectGroup);
+		if (showPadding) {
+			L.rectangle(orgrect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "red", pane: "rectangles"}).addTo(rectGroup);
+		}
 	}
 	for (const p of intersections) {
 		L.circleMarker(p, {stroke: false, color: "red", opacity: 1, fillOpacity: 1.0, pane: "rectangles"}).addTo(rectGroup);
@@ -290,12 +293,16 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var p4 = L.DomUtil.create("p");
 		var l4 = L.DomUtil.create("label");
 		var i4 = L.DomUtil.create("input");
+		var c4 = L.DomUtil.create("input");
 		i4.id = "input-padding";
 		i4.type = "number";
-		i4.defaultValue = 0;
+		i4.defaultValue = 10;
 		l4.innerHTML = "Padding:";
 		l4.for = i4.id;
-		p4.append(l4, i4, " mm");
+		c4.id = "input-padding-preview";
+		c4.type = "checkbox";
+		c4.defaultChecked = true;
+		p4.append(l4, i4, " mm ", c4, "Preview");
 		container.append(p4);
 
 		var p5 = L.DomUtil.create("p");
@@ -453,4 +460,5 @@ document.getElementById("input-size-width").addEventListener("input", onInputSiz
 document.getElementById("input-size-height").addEventListener("input", onInputSizeChange);
 document.getElementById("input-orientation").addEventListener("change", previewRoutePrint);
 document.getElementById("input-padding").addEventListener("input", previewRoutePrint);
+document.getElementById("input-padding-preview").addEventListener("change", previewRoutePrint);
 previewRoutePrint();
