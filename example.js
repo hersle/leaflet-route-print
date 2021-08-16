@@ -115,6 +115,10 @@ function centerRectangle(r1, c2) {
 	return r1;
 }
 
+function extendRectangle(r, p) {
+	return [[r[0][0]-p, r[0][1]-p], [r[1][0]+p, r[1][1]+p]];
+}
+
 function coverLineWithRectangles(l, w, h) {
 	var rects = [];
 	var intersections = [];
@@ -157,7 +161,7 @@ function metersToPixels(meters) {
 	return meters / pixelsToMeters(1);
 }
 
-function printRoute(ll, w, h) {
+function printRoute(ll, w, h, p) {
 	if (ll.length == 0) {
 		return;
 	}
@@ -167,22 +171,27 @@ function printRoute(ll, w, h) {
 		l[i] = map.project(l[i]);
 		l[i] = [l[i].x, l[i].y]
 	}
-	const [rects, intersections] = coverLineWithRectangles(l, w, h);
+	const [rects, intersections] = coverLineWithRectangles(l, w-2*p, h-2*p);
 
 	// convert from pixel coordinates back to geographical coordinates
 	for (var i = 0; i < intersections.length; i++) {
 		intersections[i] = map.unproject(intersections[i]);
 	}
+	rectGroup.clearLayers();
 	for (var i = 0; i < rects.length; i++) {
+		var orgrect = [[rects[i][0][0], rects[i][0][1]], [rects[i][1][0], rects[i][1][1]]];
+		orgrect[0] = map.unproject(orgrect[0]);
+		orgrect[1] = map.unproject(orgrect[1]);
+		orgrect[0] = [orgrect[0].lat, orgrect[0].lng];
+		orgrect[1] = [orgrect[1].lat, orgrect[1].lng];
+		L.rectangle(orgrect, {color: "black"}).addTo(rectGroup);
+
+		rects[i] = extendRectangle(rects[i], p);
 		rects[i][0] = map.unproject(rects[i][0]);
 		rects[i][1] = map.unproject(rects[i][1]);
 		rects[i][0] = [rects[i][0].lat, rects[i][0].lng];
 		rects[i][1] = [rects[i][1].lat, rects[i][1].lng];
-	}
-
-	rectGroup.clearLayers();
-	for (const rect of rects) {
-		L.rectangle(rect, {color: "black"}).addTo(rectGroup);
+		L.rectangle(rects[i], {color: "black"}).addTo(rectGroup);
 	}
 	for (const p of intersections) {
 		L.circleMarker(p, {color: "red"}).addTo(rectGroup);
@@ -276,14 +285,25 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		var p4 = L.DomUtil.create("p");
 		var l4 = L.DomUtil.create("label");
-		var b4  = L.DomUtil.create("button");
-		b4.id = "input-print";
-		b4.innerHTML = "Print as PDF";
-		b4.style.display = "block";
-		l4.innerHTML = "Print:";
-		l4.for = b4.id;
-		p4.append(l4, b4);
+		var i4 = L.DomUtil.create("input");
+		i4.id = "input-padding";
+		i4.type = "number";
+		i4.defaultValue = 0;
+		l4.innerHTML = "Padding:";
+		l4.for = i4.id;
+		p4.append(l4, i4, " mm");
 		container.append(p4);
+
+		var p5 = L.DomUtil.create("p");
+		var l5 = L.DomUtil.create("label");
+		var b5  = L.DomUtil.create("button");
+		b5.id = "input-print";
+		b5.innerHTML = "Print as PDF";
+		b5.style.display = "block";
+		l5.innerHTML = "Print:";
+		l5.for = b5.id;
+		p5.append(l5, b5);
+		container.append(p5);
 
 		return container;
 	},
@@ -332,10 +352,12 @@ function previewRoutePrint() {
 	var i12 = document.getElementById("input-scale-world");
 	var i21 = document.getElementById("input-size-width");
 	var i22 = document.getElementById("input-size-height");
+	var i4  = document.getElementById("input-padding");
 	i11.size = max(1, i11.value.toString().length+1);
 	i12.size = max(1, i12.value.toString().length+1);
 	i21.size = max(1, i21.value.toString().length+1);
 	i22.size = max(1, i22.value.toString().length+1);
+	i4.size  = max(1, i4.value.toString().length+1);
 	printRouteWrapper(false);
 }
 
@@ -348,6 +370,7 @@ async function printRouteWrapper(print) {
 	var sWorld = parseInt(document.getElementById("input-scale-world").value);
 	var wmmPaper = parseInt(document.getElementById("input-size-width").value);
 	var hmmPaper = parseInt(document.getElementById("input-size-height").value);
+	var pmmPaper = parseInt(document.getElementById("input-padding").value);
 	if (document.getElementById("input-orientation").value == "landscape") {
 		var tmp = wmmPaper;
 		wmmPaper = hmmPaper;
@@ -357,9 +380,11 @@ async function printRouteWrapper(print) {
 	var worldToPaper = 1 / paperToWorld;
 	var wmmWorld = wmmPaper * worldToPaper;
 	var hmmWorld = hmmPaper * worldToPaper;
+	var pmmWorld = pmmPaper * worldToPaper;
 	var wpxWorld = metersToPixels(wmmWorld / 1000);
 	var hpxWorld = metersToPixels(hmmWorld / 1000);
-	var rects = printRoute(points, wpxWorld, hpxWorld);
+	var ppxWorld = metersToPixels(pmmWorld / 1000);
+	var rects = printRoute(points, wpxWorld, hpxWorld, ppxWorld);
 
 	if (print) {
 		map.removeLayer(rectGroup);
@@ -423,4 +448,5 @@ function onInputSizeChange(event) {
 document.getElementById("input-size-width").addEventListener("input", onInputSizeChange);
 document.getElementById("input-size-height").addEventListener("input", onInputSizeChange);
 document.getElementById("input-orientation").addEventListener("change", previewRoutePrint);
+document.getElementById("input-padding").addEventListener("input", previewRoutePrint);
 previewRoutePrint();
