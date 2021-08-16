@@ -10,6 +10,9 @@ document.getElementById("map").style.height = "100vh";
 var map = L.map("map", {
 	preferCanvas: true
 });
+// inspired by https://stackoverflow.com/a/56904070/3527139
+map.createPane("rectangles");
+map.getPane("rectangles").style.opacity = "0.25";
 var tl = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 });
@@ -184,17 +187,18 @@ function printRoute(ll, w, h, p) {
 		orgrect[1] = map.unproject(orgrect[1]);
 		orgrect[0] = [orgrect[0].lat, orgrect[0].lng];
 		orgrect[1] = [orgrect[1].lat, orgrect[1].lng];
-		L.rectangle(orgrect, {color: "black"}).addTo(rectGroup);
 
 		rects[i] = extendRectangle(rects[i], p);
 		rects[i][0] = map.unproject(rects[i][0]);
 		rects[i][1] = map.unproject(rects[i][1]);
 		rects[i][0] = [rects[i][0].lat, rects[i][0].lng];
 		rects[i][1] = [rects[i][1].lat, rects[i][1].lng];
-		L.rectangle(rects[i], {color: "black"}).addTo(rectGroup);
+
+		L.rectangle(rects[i], {stroke: true, weight: 1, opacity: 1, color: "black", fillColor: "grey", fillOpacity: 1.0, pane: "rectangles"}).addTo(rectGroup);
+		L.rectangle(orgrect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "red", pane: "rectangles"}).addTo(rectGroup);
 	}
 	for (const p of intersections) {
-		L.circleMarker(p, {color: "red"}).addTo(rectGroup);
+		L.circleMarker(p, {stroke: false, color: "red", opacity: 1, fillOpacity: 1.0, pane: "rectangles"}).addTo(rectGroup);
 	}
 
 	return rects;
