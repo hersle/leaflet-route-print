@@ -115,6 +115,7 @@ function coverLineWithRectangles(l, w, h) {
 			var vs = [s[1][0]-s[0][0],s[1][1]-s[0][1]];
 			var bigRect = growRectBounded(rect, vs, w, h); // create rectangle as big as possible in the direction of the segment 
 			var p = intersectRectangleSegment(bigRect, s); // find where it intersects the segment
+			console.assert(p !== undefined, "no intersection point");
 			intersections.push(p); // store intersection point for debugging
 			l.splice(i, 0, p); // divide the segment
 			rect = growRect(rect, p[0], p[1]); // grow the cover rectangle to accomodate the intersection point
@@ -141,11 +142,12 @@ function metersToPixels(meters) {
 	return meters / pixelsToMeters(1);
 }
 
-function printRoute(l, w, h) {
-	console.log(`points ${l}`);
-	if (l.length == 0) {
+function printRoute(ll, w, h) {
+	console.log(`points ${ll}`);
+	if (ll.length == 0) {
 		return;
 	}
+	var l = ll.slice(); // copy array
 	for (var i = 0; i < l.length; i++) {
 		// convert from geographical coordinates to pixel coordinates (so paper size becomes meaningful)
 		l[i] = map.project(l[i]);
