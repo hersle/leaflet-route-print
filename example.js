@@ -141,18 +141,17 @@ function metersToPixels(meters) {
 	return meters / pixelsToMeters(1);
 }
 
-function printRoute(w, h) {
-	var points = routing.getWaypoints();
-	if (points.length == 0) {
+function printRoute(l, w, h) {
+	console.log(`points ${l}`);
+	if (l.length == 0) {
 		return;
 	}
-	for (var i = 0; i < points.length; i++) {
-		points[i] = [points[i].lat, points[i].lng];
+	for (var i = 0; i < l.length; i++) {
 		// convert from geographical coordinates to pixel coordinates (so paper size becomes meaningful)
-		points[i] = map.project(points[i]);
-		points[i] = [points[i].x, points[i].y]
+		l[i] = map.project(l[i]);
+		l[i] = [l[i].x, l[i].y]
 	}
-	const [rects, intersections] = coverLineWithRectangles(points, w, h);
+	const [rects, intersections] = coverLineWithRectangles(l, w, h);
 
 	// convert from pixel coordinates back to geographical coordinates
 	for (var i = 0; i < intersections.length; i++) {
@@ -227,31 +226,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 	},
 });
 
-var routing = new L.Routing({
-	position: 'topright',
-	routing: {
-		router: function(p1, p2, cb) { 
-			// straight line
-			cb(null, L.polyline([p1, p2]));
-		}
-	}, 
-	tooltips: {
-		waypoint: 'Waypoint. Drag to move; Click to remove.',
-		segment: 'Drag to create a new waypoint'
-	}, 
-	styles: {         // see http://leafletjs.com/reference.html#polyline-options
-		trailer: {},  // drawing line
-		track: {},    // calculated route result
-		nodata: {},   // line when no result (error)
-	}, 
-	shortcut: {
-		draw: {
-			enable: 68,   // 'd'
-			disable: 81   // 'q'
-		}
-	}
-});
-
+var points = [];
 function printRouteFromInputs() {
 	var s = parseInt(document.getElementById("input-scale").value);
 	var wmmPaper = parseInt(document.getElementById("input-aspect-width").value);
@@ -262,27 +237,22 @@ function printRouteFromInputs() {
 	var hmmWorld = hmmPaper * s;
 	var wpxWorld = metersToPixels(wmmWorld / 1000);
 	var hpxWorld = metersToPixels(hmmWorld / 1000);
-	printRoute(wpxWorld, hpxWorld);
+	printRoute(points, wpxWorld, hpxWorld);
 }
 
-async function addGeoJson() {
-	var line = [];
+function addGeoJson() {
 	for (var feature of geojson.features) {
 		var coords = feature.geometry.coordinates;
 		coords = [coords[1], coords[0]];
-		line.push(coords);
+		points.push(coords);
 	}
-	line = L.polyline(line);
+	var line = L.polyline(points);
 	map.addLayer(line);
 	map.fitBounds(line.getBounds());
 }
+
 addGeoJson();
-
-map.addControl(routing);
 map.addControl(new L.Control.PrintRouteControl());
-routing.draw(true);
-
 document.getElementById("input-scale").addEventListener("input", printRouteFromInputs);
 document.getElementById("input-aspect-width").addEventListener("input", printRouteFromInputs);
 document.getElementById("input-aspect-height").addEventListener("input", printRouteFromInputs);
-routing.addEventListener("routing:routeWaypointStart", printRouteFromInputs);
