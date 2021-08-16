@@ -231,29 +231,35 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var p1 = L.DomUtil.create("p");
 		var p2 = L.DomUtil.create("p");
 		var p3 = L.DomUtil.create("p");
+		var p4 = L.DomUtil.create("p");
 
 		var i11 = L.DomUtil.create("input");
 		var i12 = L.DomUtil.create("input");
 		var i21 = L.DomUtil.create("input");
 		var i22 = L.DomUtil.create("input");
+		var s3  = L.DomUtil.create("select");
 		var s   = L.DomUtil.create("select");
-		var b3  = L.DomUtil.create("button");
+		var b4  = L.DomUtil.create("button");
 		i11.id = "input-scale-paper";
 		i12.id = "input-scale-world";
 		i21.id = "input-size-width";
 		i22.id = "input-size-height";
+		s3.id  = "input-orientation";
 		i11.defaultValue = 1;
 		i12.defaultValue = 100000;
 		i21.defaultValue = 210;
 		i22.defaultValue = 297;
+		i22.defaultValue = 297;
+		s3.appendChild(new Option("Portrait", "portrait"));
+		s3.appendChild(new Option("Landscape", "landscape"));
 		i11.type = "number";
 		i12.type = "number";
 		i21.type = "number";
 		i22.type = "number";
-		b3.id = "input-print";
-		b3.innerHTML = "Print as PDF";
-		b3.style.display = "block";
-		b3.style.width = "100%";
+		b4.id = "input-print";
+		b4.innerHTML = "Print as PDF";
+		b4.style.display = "block";
+		b4.style.width = "100%";
 		s.id = "input-size-preset";
 
 		var opt = document.createElement("option");
@@ -270,12 +276,15 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var l1 = L.DomUtil.create("label");
 		var l2 = L.DomUtil.create("label");
 		var l3 = L.DomUtil.create("label");
+		var l4 = L.DomUtil.create("label");
 		l1.innerHTML = "Print scale:";
 		l2.innerHTML = "Paper size:";
-		l3.innerHTML = "Print:";
+		l3.innerHTML = "Orientation:";
+		l4.innerHTML = "Print:";
 		l1.for = i11.id + " " + i11.id;
 		l2.for = i21.id + " " + i21.id;
-		l3.for = b3.id;
+		l3.for = s3.id;
+		l4.for = b4.id;
 
 		p1.appendChild(l1);
 		p1.appendChild(i11);
@@ -290,11 +299,15 @@ L.Control.PrintRouteControl = L.Control.extend({
 		p2.appendChild(s);
 
 		p3.appendChild(l3);
-		p3.appendChild(b3);
+		p3.appendChild(s3);
+
+		p4.appendChild(l4);
+		p4.appendChild(b4);
 
 		container.appendChild(p1);
 		container.appendChild(p2);
 		container.appendChild(p3);
+		container.appendChild(p4);
 
 		return container;
 	},
@@ -359,6 +372,11 @@ async function printRouteWrapper(print) {
 	var sWorld = parseInt(document.getElementById("input-scale-world").value);
 	var wmmPaper = parseInt(document.getElementById("input-size-width").value);
 	var hmmPaper = parseInt(document.getElementById("input-size-height").value);
+	if (document.getElementById("input-orientation").value == "landscape") {
+		var tmp = wmmPaper;
+		wmmPaper = hmmPaper;
+		hmmPaper = tmp;
+	}
 	var paperToWorld = sPaper / sWorld;
 	var worldToPaper = 1 / paperToWorld;
 	var wmmWorld = wmmPaper * worldToPaper;
@@ -428,4 +446,5 @@ function onInputSizeChange(event) {
 }
 document.getElementById("input-size-width").addEventListener("input", onInputSizeChange);
 document.getElementById("input-size-height").addEventListener("input", onInputSizeChange);
+document.getElementById("input-orientation").addEventListener("change", previewRoutePrint);
 previewRoutePrint();
