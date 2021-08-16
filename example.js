@@ -427,7 +427,8 @@ async function printRouteWrapper(print) {
 			pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
 			pdf.text(tl.getAttribution().replace(/<[^>]*>/g, ""), wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
 		}
-		pdf.save("pdf.pdf");
+		pdf.autoPrint();
+		pdf.output("pdfobjectnewwindow", {filename: "route.pdf"});
 
 		map.getContainer().style.width = originalWidth;
 		map.getContainer().style.height = originalHeight;
