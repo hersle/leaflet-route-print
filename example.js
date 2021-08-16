@@ -238,9 +238,17 @@ L.Control.PrintRouteControl = L.Control.extend({
 		label2.appendChild(input22);
 		label2.innerHTML += " mm";
 		label2.style.display = "block";
+		label2.style.marginBottom = "1em";
+
+		var button = L.DomUtil.create("button");
+		button.innerHTML = "Print to PDF";
+		button.id = "input-print";
+		button.style.width = "100%";
+		button.addEventListener("click", function() {});
 
 		container.appendChild(label1);
 		container.appendChild(label2);
+		container.appendChild(button);
 
 		return container;
 	},
@@ -282,7 +290,17 @@ async function printMap(r) {
 }
 
 var points = [];
-async function printRouteFromInputs() {
+
+function previewRoutePrint() {
+	console.log("preview");
+	printRouteWrapper(false);
+}
+
+function printRouteFromInputs() {
+	printRouteWrapper(true);
+}
+
+async function printRouteWrapper(print) {
 	var s = parseInt(document.getElementById("input-scale").value);
 	var wmmPaper = parseInt(document.getElementById("input-aspect-width").value);
 	var hmmPaper = parseInt(document.getElementById("input-aspect-height").value);
@@ -293,25 +311,30 @@ async function printRouteFromInputs() {
 	var wpxWorld = metersToPixels(wmmWorld / 1000);
 	var hpxWorld = metersToPixels(hmmWorld / 1000);
 	var rects = printRoute(points, wpxWorld, hpxWorld);
-	rectGroup.clearLayers();
 
-	var originalWidth = map.getContainer().style.width;
-	var originalHeight = map.getContainer().style.height;
+	if (print) {
+		map.removeLayer(rectGroup);
 
-	var pdf = new jspdf.jsPDF();
-	for (var i = 0; i < rects.length; i++) {
-		var rect = rects[i];
-		if (i > 0) {
-			pdf.addPage([wmmPaper, hmmPaper]);
+		var originalWidth = map.getContainer().style.width;
+		var originalHeight = map.getContainer().style.height;
+
+		var pdf = new jspdf.jsPDF();
+		for (var i = 0; i < rects.length; i++) {
+			var rect = rects[i];
+			if (i > 0) {
+				pdf.addPage([wmmPaper, hmmPaper]);
+			}
+			var img = await printMap(rect);
+			pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper);
 		}
-		var img = await printMap(rect);
-		pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper);
-	}
-	pdf.save("pdf.pdf");
+		pdf.save("pdf.pdf");
 
-	map.getContainer().style.width = originalWidth;
-	map.getContainer().style.height = originalHeight;
-	map.invalidateSize();
+		map.getContainer().style.width = originalWidth;
+		map.getContainer().style.height = originalHeight;
+		map.invalidateSize();
+
+		map.addLayer(rectGroup);
+	}
 }
 
 var line;
@@ -330,6 +353,8 @@ function addGeoJson() {
 
 addGeoJson();
 map.addControl(new L.Control.PrintRouteControl());
-document.getElementById("input-scale").addEventListener("input", printRouteFromInputs);
-document.getElementById("input-aspect-width").addEventListener("input", printRouteFromInputs);
-document.getElementById("input-aspect-height").addEventListener("input", printRouteFromInputs);
+document.getElementById("input-scale").addEventListener("input", previewRoutePrint);
+document.getElementById("input-aspect-width").addEventListener("input", previewRoutePrint);
+document.getElementById("input-aspect-height").addEventListener("input", previewRoutePrint);
+document.getElementById("input-print").addEventListener("click", printRouteFromInputs);
+previewRoutePrint();
