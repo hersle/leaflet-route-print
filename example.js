@@ -268,20 +268,17 @@ async function printMap(r) {
 	map.setView(c, map.getZoom(), {animate: false});
 	map.invalidateSize();
 
-	var img = document.createElement("img");
+	var imgDataUrl;
 	var finished = false;
 	leafletImage(map, function(err, canvas) {
-		var dim = map.getSize();
-		img.width = dim.x;
-		img.height = dim.y;
-		img.src = canvas.toDataURL();
+		imgDataUrl = canvas.toDataURL();
 		finished = true;
 	});
 
 	while (!finished) { // wait for the callback to finish before returning, so that this image is generated before attempting to generate the next image
 		await sleep(100); // TODO: rewrite everything to use events/callbacks instead of sleep
 	}
-	return img;
+	return imgDataUrl;
 }
 
 var points = [];
@@ -302,15 +299,12 @@ async function printRouteFromInputs() {
 	var originalHeight = map.getContainer().style.height;
 
 	var pdf = new jspdf.jsPDF();
-	document.getElementById("images").innerHTML = "";
 	for (var i = 0; i < rects.length; i++) {
 		var rect = rects[i];
 		if (i > 0) {
 			pdf.addPage([wmmPaper, hmmPaper]);
 		}
 		var img = await printMap(rect);
-		//await sleep(2000); // TODO: BUGGY, AD-HOC FIX, REMOVE!!
-		document.getElementById("images").appendChild(img);
 		pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper);
 	}
 	pdf.save("pdf.pdf");
