@@ -293,12 +293,19 @@ async function printRouteFromInputs() {
 	var rects = printRoute(points, wpxWorld, hpxWorld);
 	rectGroup.clearLayers();
 
+	var pdf = new jspdf.jsPDF();
 	document.getElementById("images").innerHTML = "";
-	for (var rect of rects) {
+	for (var i = 0; i < rects.length; i++) {
+		var rect = rects[i];
+		if (i > 0) {
+			pdf.addPage([wmmPaper, hmmPaper]);
+		}
 		var img = await printMap(rect);
 		//await sleep(2000); // TODO: BUGGY, AD-HOC FIX, REMOVE!!
 		document.getElementById("images").appendChild(img);
+		pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper);
 	}
+	pdf.save("pdf.pdf");
 }
 
 var line;
