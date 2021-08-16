@@ -14,7 +14,7 @@ var map = L.map("map", {
 map.createPane("rectangles");
 map.getPane("rectangles").style.opacity = "0.25";
 var tl = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+	attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 });
 tl.addTo(map);
 L.control.scale({metric: true, imperial: false}).addTo(map);
@@ -415,6 +415,7 @@ async function printRouteWrapper(print) {
 		var originalHeight = map.getContainer().style.height;
 
 		var pdf = new jspdf.jsPDF();
+		pdf.setFontSize(15);
 		for (var i = 0; i < rects.length; i++) {
 			var rect = rects[i];
 			if (i > 0) {
@@ -422,6 +423,9 @@ async function printRouteWrapper(print) {
 			}
 			var img = await printMap(rect);
 			pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper);
+			pdf.text(`Page ${i+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
+			pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
+			pdf.text(tl.getAttribution().replace(/<[^>]*>/g, ""), wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
 		}
 		pdf.save("pdf.pdf");
 
