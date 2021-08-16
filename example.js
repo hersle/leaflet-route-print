@@ -421,7 +421,16 @@ async function printRouteWrapper(print) {
 	var hpxWorld = metersToPixels(hmmWorld / 1000);
 	var ppxWorld = metersToPixels(pmmWorld / 1000);
 
-	document.getElementById("input-dpi").innerHTML = dpi(wmmWorld, map.getCenter().lat); // TODO: calculate at rectangle coordinates, NOT at map view center
+	var d = dpi(wmmWorld, map.getCenter().lat); // TODO: calculate at rectangle coordinates, NOT at map view center
+	var span = document.getElementById("input-dpi");
+	span.innerHTML = d;
+	if (d >= 300) {
+		span.style.color = "green"; // good
+	} else if (d >= 150) {
+		span.style.color = "gold"; // mediocre
+	} else {
+		span.style.color = "red"; // bad
+	}
 
 	var rects = printRoute(points, wpxWorld, hpxWorld, ppxWorld);
 
