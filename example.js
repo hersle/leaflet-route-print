@@ -143,7 +143,6 @@ function metersToPixels(meters) {
 }
 
 function printRoute(ll, w, h) {
-	console.log(`points ${ll}`);
 	if (ll.length == 0) {
 		return;
 	}
@@ -166,10 +165,10 @@ function printRoute(ll, w, h) {
 
 	rectGroup.clearLayers();
 	for (const rect of rects) {
-		rectGroup.addLayer(L.rectangle(rect, {color: "black"}));
+		L.rectangle(rect, {color: "black"}).addTo(rectGroup);
 	}
 	for (const p of intersections) {
-		rectGroup.addLayer(L.circleMarker(p, {color: "red"}));
+		L.circleMarker(p, {color: "red"}).addTo(rectGroup);
 	}
 }
 
@@ -249,7 +248,7 @@ function addGeoJson() {
 		points.push(coords);
 	}
 	var line = L.polyline(points);
-	map.addLayer(line);
+	line.addTo(map);
 	map.fitBounds(line.getBounds());
 }
 
