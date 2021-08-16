@@ -2,7 +2,9 @@ var centerlat = 61.1088956;
 var centerlon = 10.4665695;
 var center = [centerlat, centerlon];
 
-var map = L.map("map");
+var map = L.map("map", {
+	preferCanvas: true
+});
 var tl = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 });
@@ -90,6 +92,14 @@ function rectangleCenter(r) {
 	return [(r[0][0]+r[1][0])/2, (r[0][1]+r[1][1])/2]
 }
 
+function rectangleWidth(r) {
+	return r[1][0] - r[0][0];
+}
+
+function rectangleHeight(r) {
+	return r[1][1] - r[0][1];
+}
+
 function centerRectangle(r1, c2) {
 	var c1 = rectangleCenter(r1);
 	for (var i = 0; i < 2; i++) {
@@ -161,6 +171,8 @@ function printRoute(ll, w, h) {
 	for (var i = 0; i < rects.length; i++) {
 		rects[i][0] = map.unproject(rects[i][0]);
 		rects[i][1] = map.unproject(rects[i][1]);
+		rects[i][0] = [rects[i][0].lat, rects[i][0].lng];
+		rects[i][1] = [rects[i][1].lat, rects[i][1].lng];
 	}
 
 	rectGroup.clearLayers();
@@ -170,6 +182,8 @@ function printRoute(ll, w, h) {
 	for (const p of intersections) {
 		L.circleMarker(p, {color: "red"}).addTo(rectGroup);
 	}
+
+	return rects;
 }
 
 // https://leafletjs.com/reference-0.7.7.html#icontrol
@@ -197,7 +211,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		input1.id = "input-scale";
 		input1.type = "text";
 		input1.style.width = "8em";
-		input1.defaultValue = "10000";
+		input1.defaultValue = "500000";
 		label1.style.display = "block";
 		label1.style.marginBottom = "1em";
 		label1.appendChild(input1);
@@ -227,8 +241,40 @@ L.Control.PrintRouteControl = L.Control.extend({
 	},
 });
 
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function printMap(r) {
+	var rect = [[r[0][0], r[0][1]], [r[1][0], r[1][1]]]; // copy
+	rect[0] = map.project(rect[0]);
+	rect[1] = map.project(rect[1]);
+	rect[0] = [rect[0].x, rect[0].y];
+	rect[1] = [rect[1].x, rect[1].y];
+	var w = rectangleWidth(rect);
+	var h = rectangleHeight(rect);
+	var c = rectangleCenter(rect);
+	c = map.unproject(c);
+
+	var cont = document.getElementById("map");
+	cont.style.width = `${w}px`;
+	cont.style.height = `${h}px`;
+	map.invalidateSize();
+	map.setView(c, map.getZoom(), {animate: false});
+	map.invalidateSize();
+
+	var img = document.createElement("img");
+	leafletImage(map, function(err, canvas) {
+		var dim = map.getSize();
+		img.width = dim.x;
+		img.height = dim.y;
+		img.src = canvas.toDataURL();
+	});
+	return img;
+}
+
 var points = [];
-function printRouteFromInputs() {
+async function printRouteFromInputs() {
 	var s = parseInt(document.getElementById("input-scale").value);
 	var wmmPaper = parseInt(document.getElementById("input-aspect-width").value);
 	var hmmPaper = parseInt(document.getElementById("input-aspect-height").value);
@@ -238,17 +284,28 @@ function printRouteFromInputs() {
 	var hmmWorld = hmmPaper * s;
 	var wpxWorld = metersToPixels(wmmWorld / 1000);
 	var hpxWorld = metersToPixels(hmmWorld / 1000);
-	printRoute(points, wpxWorld, hpxWorld);
+	var rects = printRoute(points, wpxWorld, hpxWorld);
+	rectGroup.clearLayers();
+
+	document.getElementById("images").innerHTML = "";
+	for (var rect of rects) {
+		var img = printMap(rect);
+		await sleep(2000); // TODO: BUGGY, AD-HOC FIX, REMOVE!!
+		document.getElementById("images").appendChild(img);
+	}
 }
 
+var line;
+var lineGroup = L.layerGroup();
+lineGroup.addTo(map);
 function addGeoJson() {
 	for (var feature of geojson.features) {
 		var coords = feature.geometry.coordinates;
 		coords = [coords[1], coords[0]];
 		points.push(coords);
 	}
-	var line = L.polyline(points);
-	line.addTo(map);
+	line = L.polyline(points);
+	lineGroup.addLayer(line);
 	map.fitBounds(line.getBounds());
 }
 
