@@ -307,14 +307,23 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		var p5 = L.DomUtil.create("p");
 		var l5 = L.DomUtil.create("label");
-		var b5  = L.DomUtil.create("button");
-		b5.id = "input-print";
-		b5.innerHTML = "Print as PDF";
-		b5.style.display = "block";
-		l5.innerHTML = "Print:";
-		l5.for = b5.id;
-		p5.append(l5, b5);
+		var i5 = L.DomUtil.create("span");
+		i5.id = "input-pages";
+		//i5.disabled = true;
+		l5.innerHTML = "Pages:";
+		p5.append(l5, i5);
 		container.append(p5);
+
+		var p6 = L.DomUtil.create("p");
+		var l6 = L.DomUtil.create("label");
+		var b6  = L.DomUtil.create("button");
+		b6.id = "input-print";
+		b6.innerHTML = "Print as PDF";
+		b6.style.display = "block";
+		l6.innerHTML = "Print:";
+		l6.for = b6.id;
+		p6.append(l6, b6);
+		container.append(p6);
 
 		return container;
 	},
@@ -396,6 +405,8 @@ async function printRouteWrapper(print) {
 	var hpxWorld = metersToPixels(hmmWorld / 1000);
 	var ppxWorld = metersToPixels(pmmWorld / 1000);
 	var rects = printRoute(points, wpxWorld, hpxWorld, ppxWorld);
+
+	document.getElementById("input-pages").innerHTML = rects.length;
 
 	if (print) {
 		map.removeLayer(rectGroup);
