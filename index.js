@@ -456,7 +456,7 @@ async function printRouteWrapper(print) {
 		var originalWidth = map.getContainer().style.width;
 		var originalHeight = map.getContainer().style.height;
 
-		var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper]});
+		var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper]}); // TODO: set correct orientation for printing
 		pdf.setFontSize(15);
 		for (var i = 0; i < rects.length; i++) {
 			var rect = rects[i];
