@@ -173,7 +173,7 @@ function printRoute(ll, w, h, p) {
 		intersections[i] = map.unproject(intersections[i]);
 	}
 	rectGroup.clearLayers();
-	var showPadding = document.getElementById("input-padding-preview").checked;
+	var showInset = document.getElementById("input-inset-preview").checked;
 	for (var i = 0; i < rects.length; i++) {
 		var orgrect = [[rects[i][0][0], rects[i][0][1]], [rects[i][1][0], rects[i][1][1]]];
 		orgrect[0] = map.unproject(orgrect[0]);
@@ -188,13 +188,18 @@ function printRoute(ll, w, h, p) {
 		rects[i][1] = [rects[i][1].lat, rects[i][1].lng];
 
 		L.rectangle(rects[i], {stroke: true, weight: 1, opacity: 1, color: "black", fillColor: "grey", fillOpacity: 1.0, pane: "rectangles"}).addTo(rectGroup);
-		if (showPadding) {
-			L.rectangle(orgrect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "red", pane: "rectangles"}).addTo(rectGroup);
+		if (showInset) {
+			L.rectangle(orgrect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "black", pane: "rectangles"}).addTo(rectGroup);
 		}
 	}
-	for (const p of intersections) {
-		L.circleMarker(p, {stroke: false, color: "red", opacity: 1, fillOpacity: 1.0, pane: "rectangles"}).addTo(rectGroup);
+	/*
+	// show intersection points (only for debugging purposes)
+	if (showInset) {
+		for (const p of intersections) {
+			L.circleMarker(p, {radius: 5, stroke: false, color: "black", opacity: 1, fillOpacity: 1.0, pane: "rectangles"}).addTo(rectGroup);
+		}
 	}
+	*/
 
 	return rects;
 }
@@ -246,7 +251,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		i12.id = "input-scale-world";
 		i12.type = "number";
 		i12.defaultValue = 100000;
-		l1.innerHTML = "Print scale:";
+		l1.innerHTML = "Map scale:";
 		l1.for = i11.id + " " + i11.id;
 		p1.append(l1, i11, " : ", i12);
 		container.append(p1);
@@ -263,7 +268,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		i22.type = "number";
 		i22.defaultValue = 297;
 		s2.id = "input-size-preset";
-		s2.append(new Option("custom"));
+		s2.append(new Option("free"));
 		for (var paperSize of paperSizes) {
 			s2.append(new Option(paperSize.name));
         }
@@ -286,12 +291,12 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var l4 = L.DomUtil.create("label");
 		var i4 = L.DomUtil.create("input");
 		var c4 = L.DomUtil.create("input");
-		i4.id = "input-padding";
+		i4.id = "input-inset";
 		i4.type = "number";
 		i4.defaultValue = 10;
-		l4.innerHTML = "Padding:";
+		l4.innerHTML = "Inset:";
 		l4.for = i4.id;
-		c4.id = "input-padding-preview";
+		c4.id = "input-inset-preview";
 		c4.type = "checkbox";
 		c4.defaultChecked = true;
 		p4.append(l4, i4, " mm ", c4, "Preview");
@@ -371,7 +376,7 @@ function previewRoutePrint() {
 	var i12 = document.getElementById("input-scale-world");
 	var i21 = document.getElementById("input-size-width");
 	var i22 = document.getElementById("input-size-height");
-	var i4  = document.getElementById("input-padding");
+	var i4  = document.getElementById("input-inset");
 	i11.size = Math.max(1, i11.value.toString().length+1);
 	i12.size = Math.max(1, i12.value.toString().length+1);
 	i21.size = Math.max(1, i21.value.toString().length+1);
@@ -389,7 +394,7 @@ async function printRouteWrapper(print) {
 	var sWorld = parseInt(document.getElementById("input-scale-world").value);
 	var wmmPaper = parseInt(document.getElementById("input-size-width").value);
 	var hmmPaper = parseInt(document.getElementById("input-size-height").value);
-	var pmmPaper = parseInt(document.getElementById("input-padding").value);
+	var pmmPaper = parseInt(document.getElementById("input-inset").value);
 	if (document.getElementById("input-orientation").value == "landscape") {
 		var tmp = wmmPaper;
 		wmmPaper = hmmPaper;
@@ -476,7 +481,7 @@ document.getElementById("input-size-width").addEventListener("input", previewRou
 document.getElementById("input-size-height").addEventListener("input", previewRoutePrint);
 document.getElementById("input-print").addEventListener("click", printRouteFromInputs);
 document.getElementById("input-size-preset").addEventListener("input", function(event) {
-	if (this.selectedIndex > 0) { // 0 is "custom"
+	if (this.selectedIndex > 0) { // 0 is "free"
 		document.getElementById("input-size-width").value = paperSizes[this.selectedIndex-1].width;
 		document.getElementById("input-size-height").value = paperSizes[this.selectedIndex-1].height;
 		previewRoutePrint();
@@ -491,8 +496,8 @@ function onInputSizeChange(event) {
 document.getElementById("input-size-width").addEventListener("input", onInputSizeChange);
 document.getElementById("input-size-height").addEventListener("input", onInputSizeChange);
 document.getElementById("input-orientation").addEventListener("change", previewRoutePrint);
-document.getElementById("input-padding").addEventListener("input", previewRoutePrint);
-document.getElementById("input-padding-preview").addEventListener("change", previewRoutePrint);
+document.getElementById("input-inset").addEventListener("input", previewRoutePrint);
+document.getElementById("input-inset-preview").addEventListener("change", previewRoutePrint);
 document.getElementById("input-routefile").addEventListener("change", async function(event) {
 	var file = this.files[0];
 	var stream = file.stream();

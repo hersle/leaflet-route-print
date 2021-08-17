@@ -3,9 +3,9 @@ body {
 }
 
 /* from https://stackoverflow.com/a/23741073/3527139 */
-form   { display: table;      border-spacing: 0.5em; vertical-align: middle; }
+form   { display: table;      border-spacing: 0.5em; }
 p      { display: table-row;  }
-label  { display: table-cell; font-weight: bold; }
+label  { display: table-cell; font-weight: bold; vertical-align: middle; }
 input  { display: table-cell; }
 button { display: table-cell; }
 
