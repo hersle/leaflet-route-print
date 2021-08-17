@@ -256,8 +256,6 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var i21 = L.DomUtil.create("input");
 		var i22 = L.DomUtil.create("input");
 		var s2  = L.DomUtil.create("select");
-		var s22 = L.DomUtil.create("select");
-		var b2 = L.DomUtil.create("input");
 		i21.id = "input-size-width";
 		i21.type = "number";
 		i21.defaultValue = 210;
@@ -265,19 +263,24 @@ L.Control.PrintRouteControl = L.Control.extend({
 		i22.type = "number";
 		i22.defaultValue = 297;
 		s2.id = "input-size-preset";
-		s2.append(new Option("free", "custom"));
-		b2.id = "input-orientation";
-		b2.value = "← × →";
-		b2.type = "button";
+		s2.append(new Option("custom"));
 		for (var paperSize of paperSizes) {
 			s2.append(new Option(paperSize.name));
         }
 		l2.innerHTML = "Paper size:";
 		l2.for = i21.id + " " + i21.id;
-		var space = document.createElement("space");
-		p2.style.whiteSpace = "pre"; // interpret space values in HTML code literally
-		p2.append(l2, i21, " mm ", b2, " ", i22, " mm = ", s2);
+		p2.append(l2, i21, " mm x ", i22, " mm = ", s2);
 		container.append(p2);
+
+		var p3 = L.DomUtil.create("p");
+		var l3 = L.DomUtil.create("label");
+		var s3  = L.DomUtil.create("select");
+		s3.id  = "input-orientation";
+		l3.innerHTML = "Orientation:";
+		s3.append(new Option("Portrait", "portrait"), new Option("Landscape", "landscape"));
+		l3.for = s3.id;
+		p3.append(l3, s3);
+		container.append(p3);
 
 		var p4 = L.DomUtil.create("p");
 		var l4 = L.DomUtil.create("label");
@@ -387,6 +390,11 @@ async function printRouteWrapper(print) {
 	var wmmPaper = parseInt(document.getElementById("input-size-width").value);
 	var hmmPaper = parseInt(document.getElementById("input-size-height").value);
 	var pmmPaper = parseInt(document.getElementById("input-padding").value);
+	if (document.getElementById("input-orientation").value == "landscape") {
+		var tmp = wmmPaper;
+		wmmPaper = hmmPaper;
+		hmmPaper = tmp;
+	}
 	var paperToWorld = sPaper / sWorld;
 	var worldToPaper = 1 / paperToWorld;
 	var wmmWorld = wmmPaper * worldToPaper;
@@ -464,6 +472,8 @@ function setRoute(pts) {
 setRoute(points);
 document.getElementById("input-scale-paper").addEventListener("input", previewRoutePrint);
 document.getElementById("input-scale-world").addEventListener("input", previewRoutePrint);
+document.getElementById("input-size-width").addEventListener("input", previewRoutePrint);
+document.getElementById("input-size-height").addEventListener("input", previewRoutePrint);
 document.getElementById("input-print").addEventListener("click", printRouteFromInputs);
 document.getElementById("input-size-preset").addEventListener("input", function(event) {
 	if (this.selectedIndex > 0) { // 0 is "custom"
@@ -477,18 +487,10 @@ function onInputSizeChange(event) {
 	var h = document.getElementById("input-size-height").value;
 	var i = paperSizes.findIndex(size => size.width == w && size.height == h);
 	document.getElementById("input-size-preset").selectedIndex = i+1;
-	previewRoutePrint();
 }
 document.getElementById("input-size-width").addEventListener("input", onInputSizeChange);
 document.getElementById("input-size-height").addEventListener("input", onInputSizeChange);
-document.getElementById("input-orientation").addEventListener("click", function() {
-	var w = document.getElementById("input-size-width");
-	var h = document.getElementById("input-size-height");
-	var tmp = w.value;
-	w.value = h.value;
-	h.value = tmp;
-	onInputSizeChange();
-});
+document.getElementById("input-orientation").addEventListener("change", previewRoutePrint);
 document.getElementById("input-padding").addEventListener("input", previewRoutePrint);
 document.getElementById("input-padding-preview").addEventListener("change", previewRoutePrint);
 document.getElementById("input-routefile").addEventListener("change", async function(event) {
