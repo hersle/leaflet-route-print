@@ -165,12 +165,6 @@ function metersToPixels(meters) {
 	return meters / pixelsToMeters(1);
 }
 
-function dpi(wmmWorld, latitude) {
-	// see https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Resolution_and_Scale
-	var metersPerPixel = 156543.03 * Math.cos(latitude/180*Math.PI) / (2**map.getZoom());
-	return Math.floor((wmmWorld / 1000) / metersPerPixel);
-}
-
 function printRoute(ll, w, h, p) {
 	if (ll.length == 0) {
 		return;
@@ -314,31 +308,22 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		var p5 = L.DomUtil.create("p");
 		var l5 = L.DomUtil.create("label");
-		var i5 = L.DomUtil.create("span");
-		i5.id = "input-pages";
-		//i5.disabled = true;
-		l5.innerHTML = "Pages:";
+		var i5 = L.DomUtil.create("div");
+		i5.id = "input-printinfo";
+		l5.innerHTML = "Output:";
 		p5.append(l5, i5);
 		container.append(p5);
 
 		var p6 = L.DomUtil.create("p");
 		var l6 = L.DomUtil.create("label");
-		var i6 = L.DomUtil.create("span");
-		l6.innerHTML = "DPI:";
-		i6.id = "input-dpi";
-		p6.append(l6, i6);
+		var b6  = L.DomUtil.create("button");
+		b6.id = "input-print";
+		b6.innerHTML = "Print as PDF";
+		b6.style.display = "block";
+		l6.innerHTML = "Print:";
+		l6.for = b6.id;
+		p6.append(l6, b6);
 		container.append(p6);
-
-		var p7 = L.DomUtil.create("p");
-		var l7 = L.DomUtil.create("label");
-		var b7  = L.DomUtil.create("button");
-		b7.id = "input-print";
-		b7.innerHTML = "Print as PDF";
-		b7.style.display = "block";
-		l7.innerHTML = "Print:";
-		l7.for = b7.id;
-		p7.append(l7, b7);
-		container.append(p7);
 
 		return container;
 	},
@@ -419,32 +404,14 @@ async function printRouteWrapper(print) {
 	var hpxWorld = metersToPixels(hmmWorld / 1000);
 	var ppxWorld = metersToPixels(pmmWorld / 1000);
 
-	// https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-	//console.log(`rect center lat ${c.lat}`);
-	var res = 156543.03 * Math.cos(map.getCenter().lat/180*Math.PI) / (2**map.getZoom()); // meters / pixel
-	var wmWorld = wmmWorld / 1000;
-	var hmWorld = hmmWorld / 1000;
-	var wpxTile = wmWorld / res;
-	var hpxTile = hmWorld / res;
-	var d = wpxTile / (wmmPaper / 25.4);
-	d = wpxTile / (hmmPaper / 25.4);
-	d = Math.floor(d);
-	console.log(`${wpxTile} OSM pixels wide`);
-
-	// TODO: wrong?
-	var span = document.getElementById("input-dpi");
-	span.innerHTML = d;
-	if (d >= 300) {
-		span.style.color = "green"; // good
-	} else if (d >= 150) {
-		span.style.color = "gold"; // mediocre
-	} else {
-		span.style.color = "red"; // bad
-	}
-
 	var rects = printRoute(points, wpxWorld, hpxWorld, ppxWorld);
 
-	document.getElementById("input-pages").innerHTML = rects.length;
+	var dpi = Math.floor((wpxWorld / (wmmPaper / 25.4) + hpxWorld / (hmmPaper / 25.4)) / 2);
+	var dpiSpan = document.createElement("span");
+	dpiSpan.innerHTML = `${dpi} DPI`;
+	dpiSpan.style.color = dpi >= 300 ? "green" : dpi >= 150 ? "gold" : "red";
+	document.getElementById("input-printinfo").innerHTML = `${rects.length} pages of ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels at `;
+	document.getElementById("input-printinfo").appendChild(dpiSpan);
 
 	if (print) {
 		map.removeLayer(rectGroup);
