@@ -316,6 +316,17 @@ L.Control.PrintRouteControl = L.Control.extend({
 		p6.append(l6, b6);
 		container.append(p6);
 
+		var p7 = L.DomUtil.create("p");
+		var l7 = L.DomUtil.create("label");
+		var i7 = L.DomUtil.create("input");
+		i7.id = "input-routefile";
+		i7.type = "file";
+		i7.accept = ".gpx";
+		l7.innerHTML = "Route file:";
+		l7.for = i7.id;
+		p7.append(l7, i7);
+		container.append(p7);
+
 		return container;
 	},
 });
@@ -448,16 +459,17 @@ map.addEventListener("baselayerchange", function(event) {
 });
 L.control.scale({metric: true, imperial: false}).addTo(map);
 
-var line;
+var line = L.polyline([]);
 var lineGroup = L.layerGroup();
+lineGroup.addLayer(line);
 lineGroup.addTo(map);
-function addGeoJson() {
-	line = L.polyline(points);
-	lineGroup.addLayer(line);
+function setRoute(pts) {
+	points = pts;
+	line.setLatLngs(pts);
 	map.fitBounds(line.getBounds());
 }
 
-addGeoJson();
+setRoute(points);
 document.getElementById("input-scale-paper").addEventListener("input", previewRoutePrint);
 document.getElementById("input-scale-world").addEventListener("input", previewRoutePrint);
 document.getElementById("input-size-width").addEventListener("input", previewRoutePrint);
@@ -481,6 +493,40 @@ document.getElementById("input-size-height").addEventListener("input", onInputSi
 document.getElementById("input-orientation").addEventListener("change", previewRoutePrint);
 document.getElementById("input-padding").addEventListener("input", previewRoutePrint);
 document.getElementById("input-padding-preview").addEventListener("change", previewRoutePrint);
+document.getElementById("input-routefile").addEventListener("change", async function(event) {
+	var file = this.files[0];
+	var stream = file.stream();
+	var reader = stream.getReader();
+	const utf8Decoder = new TextDecoder("utf-8");
+	var done = false;
+	var newpoints = [];
+	while (!done) {
+		var res = await reader.read();
+		done = res.done;
+		var s = utf8Decoder.decode(res.value, {stream: true});
+		var l = "";
+		while (true) {
+			var i = s.indexOf("\n");
+			l += s.slice(0, i);
+			if (i == -1) {
+				break;
+			} else {
+				// have one newline, handle it
+				var regex = /trkpt lat="([+-]?\d+(?:\.\d+)?)" lon="([+-]?\d+(?:\.\d+)?)"/; // match <trkpt lat="float" lon="float"
+				var matches = l.match(regex);
+				if (matches && matches.length == 3) { // have [fullmatch, lat, lon]
+					newpoints.push([parseFloat(matches[1]), parseFloat(matches[2])]);
+				}
+
+				s = s.slice(i+1);
+				l = "";
+			}
+		}
+	}
+	points = newpoints;
+	line.setLatLngs(points);
+	map.fitBounds(line.getBounds());
+});
 map.addEventListener("zoomend", previewRoutePrint); // just for updating DPI value TODO: remove/optimize
 previewRoutePrint();
 onInputSizeChange();
