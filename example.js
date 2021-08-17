@@ -314,23 +314,54 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var l6 = L.DomUtil.create("label");
 		var b6  = L.DomUtil.create("button");
 		b6.id = "input-print";
-		b6.innerHTML = "Print as PDF";
+		b6.innerHTML = "Print to PDF";
 		b6.style.display = "block";
 		l6.innerHTML = "Print:";
 		l6.for = b6.id;
 		p6.append(l6, b6);
 		container.append(p6);
 
-		var p7 = L.DomUtil.create("p");
-		var l7 = L.DomUtil.create("label");
-		var i7 = L.DomUtil.create("input");
-		i7.id = "input-routefile";
-		i7.type = "file";
-		i7.accept = ".gpx";
-		l7.innerHTML = "Route file:";
-		l7.for = i7.id;
-		p7.append(l7, i7);
-		container.append(p7);
+		return container;
+	},
+});
+
+L.Control.MiscSelector = L.Control.extend({
+	options: {
+		position: "topleft",
+	},
+	onAdd: function(map) {
+		var container = L.DomUtil.create("form", "text-input leaflet-bar");
+		container.style.backgroundColor = "white";
+		container.style.padding = "0.5em";
+		container.addEventListener("click", function(event) {
+			event.stopPropagation();
+		});
+		container.addEventListener("mousedown", function(event) {
+			event.stopPropagation();
+		});
+		container.addEventListener("dblclick", function(event) {
+			event.stopPropagation();
+		});
+
+		var p1 = L.DomUtil.create("p");
+		var l1 = L.DomUtil.create("label");
+		var s1 = L.DomUtil.create("select");
+		s1.id = "input-layer";
+		l1.innerHTML = "Map source:";
+		s1.append(new Option("OpenStreetMap", "openstreetmap"), new Option("Norgeskart", "norgeskart"));
+		p1.append(l1, s1);
+		container.append(p1);
+
+		var p2 = L.DomUtil.create("p");
+		var l2 = L.DomUtil.create("label");
+		var i2 = L.DomUtil.create("input");
+		i2.id = "input-routefile";
+		i2.type = "file";
+		i2.accept = ".gpx";
+		l2.innerHTML = "Route file:";
+		l2.for = i2.id;
+		p2.append(l2, i2);
+		container.append(p2);
 
 		return container;
 	},
@@ -450,18 +481,8 @@ async function printRouteWrapper(print) {
 }
 
 map.addControl(new L.Control.PrintRouteControl());
-var layerControl = L.control.layers({
-	"OpenStreetMap": tlOsm,
-	"Norgeskart": tlNorgeskart,
-}, {
-}, {
-	"position": "topleft",
-});
-layerControl.addTo(map);
+map.addControl(new L.Control.MiscSelector());
 L.control.zoom().addTo(map);
-map.addEventListener("baselayerchange", function(event) {
-	currentBaseLayer = event.layer;
-});
 L.control.scale({metric: true, imperial: false}).addTo(map);
 
 var line = L.polyline([]);
@@ -531,6 +552,17 @@ document.getElementById("input-routefile").addEventListener("change", async func
 	points = newpoints;
 	line.setLatLngs(points);
 	map.fitBounds(line.getBounds());
+});
+document.getElementById("input-layer").addEventListener("change", function(event) {
+	if (document.getElementById("input-layer").value == "openstreetmap") {
+		map.removeLayer(tlNorgeskart);
+		map.addLayer(tlOsm);
+		currentBaseLayer = tlOsm;
+	} else if (document.getElementById("input-layer").value == "norgeskart") {
+		map.removeLayer(tlOsm);
+		map.addLayer(tlNorgeskart);
+		currentBaseLayer = tlNorgeskart;
+	}
 });
 map.addEventListener("zoomend", previewRoutePrint); // just for updating DPI value TODO: remove/optimize
 previewRoutePrint();
