@@ -1,7 +1,3 @@
-var centerlat = 61.1088956;
-var centerlon = 10.4665695;
-var center = [centerlat, centerlon];
-
 // map.getContainer().style will NOT return values set in stylesheet,
 // so set them here instead
 document.getElementById("map").style.width = "100vw";
@@ -22,27 +18,17 @@ var tlNorgeskart = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.op
 });
 tlOsm.addTo(map);
 var currentBaseLayer = tlOsm;
-L.control.scale({metric: true, imperial: false}).addTo(map);
-map.setView(center, 15);
 
 // keep all rectangles in one group
 var rectGroup = L.layerGroup();
 rectGroup.addTo(map);
-
-function min(a, b) {
-	return a < b ? a : b;
-}
-
-function max(a, b) {
-	return a > b ? a : b;
-}
 
 function rectIsOk(r, w, h) {
 	return r[1][0] - r[0][0] <= w && r[1][1] - r[0][1] <= h;
 }
 
 function growRect(r, x, y) {
-	return [[min(r[0][0], x), min(r[0][1], y)], [max(r[1][0], x), max(r[1][1], y)]];
+	return [[Math.min(r[0][0], x), Math.min(r[0][1], y)], [Math.max(r[1][0], x), Math.max(r[1][1], y)]];
 }
 
 function intersectSegments(l1, l2) {
@@ -352,7 +338,6 @@ async function printMap(r) {
 	var cont = document.getElementById("map");
 	cont.style.width = `${w}px`;
 	cont.style.height = `${h}px`;
-	map.invalidateSize();
 	map.setView(c, map.getZoom(), {animate: false});
 	map.invalidateSize();
 
@@ -364,7 +349,7 @@ async function printMap(r) {
 	});
 
 	while (!finished) { // wait for the callback to finish before returning, so that this image is generated before attempting to generate the next image
-		await sleep(2000); // TODO: rewrite everything to use events/callbacks instead of sleep
+		await sleep(100); // TODO: rewrite everything to use events/callbacks instead of sleep
 	}
 	return imgDataUrl;
 }
@@ -376,11 +361,11 @@ function previewRoutePrint() {
 	var i21 = document.getElementById("input-size-width");
 	var i22 = document.getElementById("input-size-height");
 	var i4  = document.getElementById("input-padding");
-	i11.size = max(1, i11.value.toString().length+1);
-	i12.size = max(1, i12.value.toString().length+1);
-	i21.size = max(1, i21.value.toString().length+1);
-	i22.size = max(1, i22.value.toString().length+1);
-	i4.size  = max(1, i4.value.toString().length+1);
+	i11.size = Math.max(1, i11.value.toString().length+1);
+	i12.size = Math.max(1, i12.value.toString().length+1);
+	i21.size = Math.max(1, i21.value.toString().length+1);
+	i22.size = Math.max(1, i22.value.toString().length+1);
+	i4.size  = Math.max(1, i4.value.toString().length+1);
 	printRouteWrapper(false);
 }
 
@@ -461,6 +446,7 @@ L.control.zoom().addTo(map);
 map.addEventListener("baselayerchange", function(event) {
 	currentBaseLayer = event.layer;
 });
+L.control.scale({metric: true, imperial: false}).addTo(map);
 
 var line;
 var lineGroup = L.layerGroup();
