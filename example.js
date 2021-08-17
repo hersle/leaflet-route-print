@@ -419,7 +419,19 @@ async function printRouteWrapper(print) {
 	var hpxWorld = metersToPixels(hmmWorld / 1000);
 	var ppxWorld = metersToPixels(pmmWorld / 1000);
 
-	var d = dpi(wmmWorld, map.getCenter().lat); // TODO: calculate at rectangle coordinates, NOT at map view center
+	// https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+	//console.log(`rect center lat ${c.lat}`);
+	var res = 156543.03 * Math.cos(map.getCenter().lat/180*Math.PI) / (2**map.getZoom()); // meters / pixel
+	var wmWorld = wmmWorld / 1000;
+	var hmWorld = hmmWorld / 1000;
+	var wpxTile = wmWorld / res;
+	var hpxTile = hmWorld / res;
+	var d = wpxTile / (wmmPaper / 25.4);
+	d = wpxTile / (hmmPaper / 25.4);
+	d = Math.floor(d);
+	console.log(`${wpxTile} OSM pixels wide`);
+
+	// TODO: wrong?
 	var span = document.getElementById("input-dpi");
 	span.innerHTML = d;
 	if (d >= 300) {
