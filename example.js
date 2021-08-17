@@ -8,15 +8,20 @@ document.getElementById("map").style.width = "100vw";
 document.getElementById("map").style.height = "100vh";
 
 var map = L.map("map", {
-	preferCanvas: true
+	preferCanvas: true,
+	zoomControl: false,
 });
 // inspired by https://stackoverflow.com/a/56904070/3527139
 map.createPane("rectangles");
 map.getPane("rectangles").style.opacity = "0.25";
-var tl = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+var tlOsm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 	attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 });
-tl.addTo(map);
+var tlNorgeskart = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=norgeskart_bakgrunn&zoom={z}&x={x}&y={y}', {
+	attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'
+});
+tlOsm.addTo(map);
+var currentBaseLayer = tlOsm;
 L.control.scale({metric: true, imperial: false}).addTo(map);
 map.setView(center, 15);
 
@@ -229,7 +234,7 @@ for (var n = 0; n <= 10; n++) {
 // https://leafletjs.com/reference-0.7.7.html#icontrol
 L.Control.PrintRouteControl = L.Control.extend({
 	options: {
-		position: "topright",
+		position: "topleft",
 	},
 	onAdd: function(map) {
 		var container = L.DomUtil.create("form", "text-input leaflet-bar");
@@ -419,7 +424,7 @@ async function printRouteWrapper(print) {
 		var originalWidth = map.getContainer().style.width;
 		var originalHeight = map.getContainer().style.height;
 
-		var pdf = new jspdf.jsPDF();
+		var pdf = new jspdf.jsPDF(); // TODO: set first page width, height too
 		pdf.setFontSize(15);
 		for (var i = 0; i < rects.length; i++) {
 			var rect = rects[i];
@@ -430,7 +435,7 @@ async function printRouteWrapper(print) {
 			pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper);
 			pdf.text(`Page ${i+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
 			pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
-			pdf.text(tl.getAttribution().replace(/<[^>]*>/g, ""), wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
+			pdf.text(currentBaseLayer.getAttribution().replace(/<[^>]*>/g, ""), wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
 		}
 		pdf.autoPrint();
 		pdf.output("pdfobjectnewwindow", {filename: "route.pdf"});
@@ -443,6 +448,20 @@ async function printRouteWrapper(print) {
 	}
 }
 
+map.addControl(new L.Control.PrintRouteControl());
+var layerControl = L.control.layers({
+	"OpenStreetMap": tlOsm,
+	"Norgeskart": tlNorgeskart,
+}, {
+}, {
+	"position": "topleft",
+});
+layerControl.addTo(map);
+L.control.zoom().addTo(map);
+map.addEventListener("baselayerchange", function(event) {
+	currentBaseLayer = event.layer;
+});
+
 var line;
 var lineGroup = L.layerGroup();
 lineGroup.addTo(map);
@@ -453,7 +472,6 @@ function addGeoJson() {
 }
 
 addGeoJson();
-map.addControl(new L.Control.PrintRouteControl());
 document.getElementById("input-scale-paper").addEventListener("input", previewRoutePrint);
 document.getElementById("input-scale-world").addEventListener("input", previewRoutePrint);
 document.getElementById("input-size-width").addEventListener("input", previewRoutePrint);
