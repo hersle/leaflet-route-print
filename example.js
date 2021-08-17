@@ -483,3 +483,4 @@ document.getElementById("input-padding").addEventListener("input", previewRouteP
 document.getElementById("input-padding-preview").addEventListener("change", previewRoutePrint);
 map.addEventListener("zoomend", previewRoutePrint); // just for updating DPI value TODO: remove/optimize
 previewRoutePrint();
+onInputSizeChange();
