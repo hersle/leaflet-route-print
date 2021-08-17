@@ -379,8 +379,6 @@ async function printMap(r) {
 	return imgDataUrl;
 }
 
-var points = [];
-
 function previewRoutePrint() {
 	// keep input fields as wide as they need to be
 	var i11 = document.getElementById("input-scale-paper");
@@ -470,11 +468,6 @@ var line;
 var lineGroup = L.layerGroup();
 lineGroup.addTo(map);
 function addGeoJson() {
-	for (var feature of geojson.features) {
-		var coords = feature.geometry.coordinates;
-		coords = [coords[1], coords[0]];
-		points.push(coords);
-	}
 	line = L.polyline(points);
 	lineGroup.addLayer(line);
 	map.fitBounds(line.getBounds());
