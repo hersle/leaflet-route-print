@@ -312,9 +312,10 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		var p6 = L.DomUtil.create("p");
 		var l6 = L.DomUtil.create("label");
-		var b6  = L.DomUtil.create("button");
+		var b6  = L.DomUtil.create("input");
 		b6.id = "input-print";
-		b6.innerHTML = "Print to PDF";
+		b6.type = "button";
+		b6.value = "Print to PDF";
 		b6.style.display = "block";
 		l6.innerHTML = "Print:";
 		l6.for = b6.id;
@@ -371,34 +372,40 @@ function sleep(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function printMap(r) {
-	var rect = [[r[0][0], r[0][1]], [r[1][0], r[1][1]]]; // copy
-	rect[0] = map.project(rect[0]);
-	rect[1] = map.project(rect[1]);
-	rect[0] = [rect[0].x, rect[0].y];
-	rect[1] = [rect[1].x, rect[1].y];
-	var w = rectangleWidth(rect);
-	var h = rectangleHeight(rect);
-	var c = rectangleCenter(rect);
-	c = map.unproject(c);
-
+var imgDataUrls = [];
+function printMap(rects) {
 	var cont = document.getElementById("map");
-	cont.style.width = `${w}px`;
-	cont.style.height = `${h}px`;
-	map.setView(c, map.getZoom(), {animate: false});
-	map.invalidateSize();
 
-	var imgDataUrl;
-	var finished = false;
-	leafletImage(map, function(err, canvas) {
-		imgDataUrl = canvas.toDataURL();
-		finished = true;
-	});
+	function printRect(i) {
+		if (i == rects.length) {
+			document.dispatchEvent(new Event("printcomplete"));
+			return;
+		}
 
-	while (!finished) { // wait for the callback to finish before returning, so that this image is generated before attempting to generate the next image
-		await sleep(100); // TODO: rewrite everything to use events/callbacks instead of sleep
+		var r = rects[i];
+		var rect = [[r[0][0], r[0][1]], [r[1][0], r[1][1]]]; // copy
+		rect[0] = map.project(rect[0]);
+		rect[1] = map.project(rect[1]);
+		rect[0] = [rect[0].x, rect[0].y];
+		rect[1] = [rect[1].x, rect[1].y];
+		var w = rectangleWidth(rect);
+		var h = rectangleHeight(rect);
+		var c = rectangleCenter(rect);
+		c = map.unproject(c);
+
+		cont.style.width = `${w}px`;
+		cont.style.height = `${h}px`;
+		map.invalidateSize();
+		map.setView(c, map.getZoom(), {animate: false});
+		map.invalidateSize();
+
+		leafletImage(map, function(err, canvas) {
+			imgDataUrls.push(canvas.toDataURL());
+			printRect(i+1);
+		});
 	}
-	return imgDataUrl;
+
+	printRect(0);
 }
 
 function previewRoutePrint() {
@@ -451,32 +458,38 @@ async function printRouteWrapper(print) {
 	document.getElementById("input-printinfo").appendChild(dpiSpan);
 
 	if (print) {
+		var printfunc = function() {
+			var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper]}); // TODO: set correct orientation for printing
+			pdf.setFontSize(15);
+			for (var i = 0; i < rects.length; i++) {
+				var rect = rects[i];
+				if (i > 0) {
+					pdf.addPage([wmmPaper, hmmPaper]);
+				}
+				var img = imgDataUrls[i];
+				pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper);
+				pdf.text(`Page ${i+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
+				pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
+				pdf.text(currentBaseLayer.getAttribution().replace(/<[^>]*>/g, ""), wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
+			}
+			pdf.autoPrint();
+			pdf.output("pdfobjectnewwindow", {filename: "route.pdf"});
+
+			map.getContainer().style.width = originalWidth;
+			map.getContainer().style.height = originalHeight;
+			map.invalidateSize();
+
+			map.addLayer(rectGroup);
+			document.removeEventListener("printcomplete", printfunc);
+		};
+		document.addEventListener("printcomplete", printfunc);
+
 		map.removeLayer(rectGroup);
 
 		var originalWidth = map.getContainer().style.width;
 		var originalHeight = map.getContainer().style.height;
 
-		var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper]}); // TODO: set correct orientation for printing
-		pdf.setFontSize(15);
-		for (var i = 0; i < rects.length; i++) {
-			var rect = rects[i];
-			if (i > 0) {
-				pdf.addPage([wmmPaper, hmmPaper]);
-			}
-			var img = await printMap(rect);
-			pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper);
-			pdf.text(`Page ${i+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
-			pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
-			pdf.text(currentBaseLayer.getAttribution().replace(/<[^>]*>/g, ""), wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
-		}
-		pdf.autoPrint();
-		pdf.output("pdfobjectnewwindow", {filename: "route.pdf"});
-
-		map.getContainer().style.width = originalWidth;
-		map.getContainer().style.height = originalHeight;
-		map.invalidateSize();
-
-		map.addLayer(rectGroup);
+		printMap(rects);
 	}
 }
 
