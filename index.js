@@ -485,6 +485,7 @@ async function printRouteWrapper(print) {
 				var imgw = orientation == "p" ? wmmPaper : hmmPaper;
 				var imgh = orientation == "p" ? hmmPaper : wmmPaper;
 				pdf.addImage(img, "jpeg", 0, 0, imgw, imgh);
+				pdf.text("Printed with hersle.github.io/leaflet-route-print", 0+5, 0+5, {align: "left", baseline: "top"});
 				pdf.text(`Page ${i+1} of ${rects.length}`, imgw-5, 0+5, {align: "right", baseline: "top"});
 				pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, imgh-5, {align: "left", baseline: "bottom"});
 				pdf.text(currentBaseLayer.getAttribution().replace(/<[^>]*>/g, ""), imgw-5, imgh-5, {align: "right", baseline: "bottom"});
