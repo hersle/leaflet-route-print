@@ -475,6 +475,8 @@ async function printRouteWrapper(print) {
 			pdf.autoPrint();
 			pdf.output("pdfobjectnewwindow", {filename: "route.pdf"});
 
+			imgDataUrls = []; // reset for next printing
+
 			map.getContainer().style.width = originalWidth;
 			map.getContainer().style.height = originalHeight;
 			map.invalidateSize();
