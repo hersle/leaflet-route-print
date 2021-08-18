@@ -313,13 +313,18 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var p6 = L.DomUtil.create("p");
 		var l6 = L.DomUtil.create("label");
 		var b6  = L.DomUtil.create("input");
+		var a6 = L.DomUtil.create("a");
 		b6.id = "input-print";
 		b6.type = "button";
 		b6.value = "Print to PDF";
-		b6.style.display = "block";
+		b6.style.display = "inline";
 		l6.innerHTML = "Print:";
 		l6.for = b6.id;
-		p6.append(l6, b6);
+		a6.id = "input-download";
+		a6.style.display = "inline";
+		a6.style.marginLeft = "0.5em";
+		a6.download = "route.pdf"; // suggested filename in browser
+		p6.append(l6, b6, a6);
 		container.append(p6);
 
 		return container;
@@ -424,6 +429,8 @@ function previewRoutePrint() {
 }
 
 function printRouteFromInputs() {
+	document.getElementById("input-download").href = "";
+	document.getElementById("input-download").innerHTML = "";
 	printRouteWrapper(true);
 }
 
@@ -482,8 +489,11 @@ async function printRouteWrapper(print) {
 				pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, imgh-5, {align: "left", baseline: "bottom"});
 				pdf.text(currentBaseLayer.getAttribution().replace(/<[^>]*>/g, ""), imgw-5, imgh-5, {align: "right", baseline: "bottom"});
 			}
-			pdf.autoPrint();
-			pdf.output("pdfobjectnewwindow", {filename: "route.pdf"});
+			// to decide download filename: https://stackoverflow.com/a/56923508/3527139
+			var blob = pdf.output("blob");
+			var bloburl = URL.createObjectURL(blob);
+			document.getElementById("input-download").innerHTML = "Download";
+			document.getElementById("input-download").href = bloburl;
 
 			imgDataUrls = []; // reset for next printing
 
