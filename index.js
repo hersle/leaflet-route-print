@@ -459,18 +459,28 @@ async function printRouteWrapper(print) {
 
 	if (print) {
 		var printfunc = function() {
-			var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper]}); // TODO: set correct orientation for printing
+			if (document.getElementById("input-orientation").value == "landscape") {
+				// swap back before printing
+				var tmp = wmmPaper;
+				wmmPaper = hmmPaper;
+				hmmPaper = tmp;
+			}
+			var orientation = document.getElementById("input-orientation").value[0];
+			console.log(`${wmmPaper} x ${hmmPaper} in ${orientation}`);
+			var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper], orientation: orientation}); // TODO: set correct orientation for printing
 			pdf.setFontSize(15);
 			for (var i = 0; i < rects.length; i++) {
 				var rect = rects[i];
 				if (i > 0) {
-					pdf.addPage([wmmPaper, hmmPaper]);
+					pdf.addPage([wmmPaper, hmmPaper], orientation);
 				}
 				var img = imgDataUrls[i];
-				pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper);
-				pdf.text(`Page ${i+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
-				pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
-				pdf.text(currentBaseLayer.getAttribution().replace(/<[^>]*>/g, ""), wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
+				var imgw = orientation == "p" ? wmmPaper : hmmPaper;
+				var imgh = orientation == "p" ? hmmPaper : wmmPaper;
+				pdf.addImage(img, "jpeg", 0, 0, imgw, imgh);
+				pdf.text(`Page ${i+1} of ${rects.length}`, imgw-5, 0+5, {align: "right", baseline: "top"});
+				pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, imgh-5, {align: "left", baseline: "bottom"});
+				pdf.text(currentBaseLayer.getAttribution().replace(/<[^>]*>/g, ""), imgw-5, imgh-5, {align: "right", baseline: "bottom"});
 			}
 			pdf.autoPrint();
 			pdf.output("pdfobjectnewwindow", {filename: "route.pdf"});
