@@ -404,6 +404,13 @@ function printMap(rects) {
 		map.invalidateSize();
 
 		leafletImage(map, function(err, canvas) {
+			// make canvas background white, since jpeg does not support white background
+			// https://stackoverflow.com/a/56085861/3527139
+			var ctx = canvas.getContext("2d");
+			ctx.globalCompositeOperation = 'destination-over';
+			ctx.fillStyle = "white";
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+
 			imgDataUrls.push(canvas.toDataURL("image/jpeg")); // TODO: add options for format and quality
 			printRect(i+1);
 		});
