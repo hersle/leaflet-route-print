@@ -216,20 +216,17 @@ function printRoute(ll, w, h, p) {
 
 // list paper sizes from https://en.wikipedia.org/wiki/Paper_size#Overview_of_ISO_paper_sizes
 var paperSizes = [];
-for (var n = 0; n <= 10; n++) {
+for (var n = 0; n <= 6; n++) {
 	var w = Math.floor(841  / 2**(n/2));
 	var h = Math.floor(1189 / 2**(n/2));
-	paperSizes.push({name: `A${n}`, width: w, height: h});
+	paperSizes.push({name: `A${n} (P)`, width: w, height: h});
+	paperSizes.push({name: `A${n} (L)`, width: h, height: w});
 }
-for (var n = 0; n <= 10; n++) {
+for (var n = 0; n <= 6; n++) {
 	var w = Math.floor(1000 / 2**(n/2));
 	var h = Math.floor(1414 / 2**(n/2));
-	paperSizes.push({name: `B${n}`, width: w, height: h});
-}
-for (var n = 0; n <= 10; n++) {
-	var w = Math.floor(917  / 2**(n/2));
-	var h = Math.floor(1297 / 2**(n/2));
-	paperSizes.push({name: `C${n}`, width: w, height: h});
+	paperSizes.push({name: `B${n} (P)`, width: w, height: h});
+	paperSizes.push({name: `B${n} (L)`, width: h, height: w});
 }
 
 // https://leafletjs.com/reference-0.7.7.html#icontrol
@@ -286,16 +283,6 @@ L.Control.PrintRouteControl = L.Control.extend({
 		l2.for = i21.id + " " + i21.id;
 		p2.append(l2, i21, " mm x ", i22, " mm = ", s2);
 		container.append(p2);
-
-		var p3 = L.DomUtil.create("p");
-		var l3 = L.DomUtil.create("label");
-		var s3  = L.DomUtil.create("select");
-		s3.id  = "input-orientation";
-		l3.innerHTML = "Orientation:";
-		s3.append(new Option("Portrait", "portrait"), new Option("Landscape", "landscape"));
-		l3.for = s3.id;
-		p3.append(l3, s3);
-		container.append(p3);
 
 		var p4 = L.DomUtil.create("p");
 		var l4 = L.DomUtil.create("label");
@@ -460,11 +447,6 @@ async function printRouteWrapper(print) {
 	var wmmPaper = parseInt(document.getElementById("input-size-width").value);
 	var hmmPaper = parseInt(document.getElementById("input-size-height").value);
 	var pmmPaper = parseInt(document.getElementById("input-inset").value);
-	if (document.getElementById("input-orientation").value == "landscape") {
-		var tmp = wmmPaper;
-		wmmPaper = hmmPaper;
-		hmmPaper = tmp;
-	}
 	var paperToWorld = sPaper / sWorld;
 	var worldToPaper = 1 / paperToWorld;
 	var wmmWorld = wmmPaper * worldToPaper;
@@ -486,29 +468,19 @@ async function printRouteWrapper(print) {
 
 	if (print) {
 		var printfunc = function() {
-			if (document.getElementById("input-orientation").value == "landscape") {
-				// swap back before printing
-				var tmp = wmmPaper;
-				wmmPaper = hmmPaper;
-				hmmPaper = tmp;
-			}
-			var orientation = document.getElementById("input-orientation").value[0];
-			console.log(`${wmmPaper} x ${hmmPaper} in ${orientation}`);
-			var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper], orientation: orientation}); // TODO: set correct orientation for printing
+			var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper]});
 			pdf.setFontSize(15);
 			for (var i = 0; i < rects.length; i++) {
 				var rect = rects[i];
 				if (i > 0) {
-					pdf.addPage([wmmPaper, hmmPaper], orientation);
+					pdf.addPage([wmmPaper, hmmPaper]);
 				}
 				var img = imgDataUrls[i];
-				var imgw = orientation == "p" ? wmmPaper : hmmPaper;
-				var imgh = orientation == "p" ? hmmPaper : wmmPaper;
-				pdf.addImage(img, "jpeg", 0, 0, imgw, imgh); // TODO: compress here, too?
+				pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper); // TODO: compress here, too?
 				pdf.text("Printed with hersle.github.io/leaflet-route-print", 0+5, 0+5, {align: "left", baseline: "top"});
-				pdf.text(`Page ${i+1} of ${rects.length}`, imgw-5, 0+5, {align: "right", baseline: "top"});
-				pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, imgh-5, {align: "left", baseline: "bottom"});
-				pdf.text(currentBaseLayer.getAttribution().replace(/<[^>]*>/g, ""), imgw-5, imgh-5, {align: "right", baseline: "bottom"});
+				pdf.text(`Page ${i+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
+				pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
+				pdf.text(currentBaseLayer.getAttribution().replace(/<[^>]*>/g, ""), wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
 			}
 			// to decide download filename: https://stackoverflow.com/a/56923508/3527139
 			var blob = pdf.output("blob");
@@ -579,7 +551,6 @@ function onInputSizeChange(event) {
 }
 document.getElementById("input-size-width").addEventListener("input", onInputSizeChange);
 document.getElementById("input-size-height").addEventListener("input", onInputSizeChange);
-document.getElementById("input-orientation").addEventListener("change", previewRoutePrint);
 document.getElementById("input-inset").addEventListener("input", previewRoutePrint);
 document.getElementById("input-inset-preview").addEventListener("change", previewRoutePrint);
 document.getElementById("input-routefile").addEventListener("change", async function(event) {
