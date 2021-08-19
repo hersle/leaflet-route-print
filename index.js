@@ -500,9 +500,11 @@ async function printRouteWrapper(print) {
 			}
 			// to decide download filename: https://stackoverflow.com/a/56923508/3527139
 			var blob = pdf.output("blob");
+			var bytes = blob.size;
+			var megabytes = (bytes / 1e6).toFixed(1); // 1 decimal
 			var bloburl = URL.createObjectURL(blob);
 			document.getElementById("input-download").download = "route.pdf"; // suggested filename in browser
-			document.getElementById("input-download").innerHTML = "Download";
+			document.getElementById("input-download").innerHTML = `Download PDF (${megabytes} MB)`;
 			document.getElementById("input-download").href = bloburl;
 			document.getElementById("input-download").style.color = "blue";
 			document.getElementById("input-download").style.textDecoration = "underline";
