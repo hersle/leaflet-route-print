@@ -10,14 +10,24 @@ var map = L.map("map", {
 // inspired by https://stackoverflow.com/a/56904070/3527139
 map.createPane("rectangles");
 map.getPane("rectangles").style.opacity = "0.25";
-var tlOsm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-	attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-});
-var tlNorgeskart = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=norgeskart_bakgrunn&zoom={z}&x={x}&y={y}', {
-	attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'
-});
-tlOsm.addTo(map);
-var currentBaseLayer = tlOsm;
+
+var tl1 = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
+tl1.name = "OpenStreetMap";
+var tl2 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=norgeskart_bakgrunn&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
+tl2.name = "Norgeskart (bakgrunn)";
+var tl3 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=toporaster4&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
+tl3.name = "Norgeskart (toporaster4)";
+var tl4 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
+tl4.name = "Norgeskart (topo4)";
+var tl5 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4graatone&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
+tl5.name = "Norgeskart (topo4 gråtone)";
+var tl6 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=norges_grunnkart&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
+tl6.name = "Norgeskart (grunnkart)";
+var tl7 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=norges_grunnkart_graatone&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
+tl7.name = "Norgeskart (grunnkart gråtone)";
+var tileLayers = [tl1, tl2, tl3, tl4, tl5, tl6, tl7];
+tl1.addTo(map);
+var currentBaseLayer = tl1;
 
 // keep all rectangles in one group
 var rectGroup = L.layerGroup();
@@ -354,7 +364,9 @@ L.Control.MiscSelector = L.Control.extend({
 		var s1 = L.DomUtil.create("select");
 		s1.id = "input-layer";
 		l1.innerHTML = "Map source:";
-		s1.append(new Option("OpenStreetMap", "openstreetmap"), new Option("Norgeskart", "norgeskart"));
+		for (var tl of tileLayers) {
+			s1.append(new Option(tl.name));
+		}
 		p1.append(l1, s1);
 		container.append(p1);
 
@@ -605,14 +617,11 @@ document.getElementById("input-routefile").addEventListener("change", async func
 	map.fitBounds(line.getBounds());
 });
 document.getElementById("input-layer").addEventListener("change", function(event) {
-	if (document.getElementById("input-layer").value == "openstreetmap") {
-		map.removeLayer(tlNorgeskart);
-		map.addLayer(tlOsm);
-		currentBaseLayer = tlOsm;
-	} else if (document.getElementById("input-layer").value == "norgeskart") {
-		map.removeLayer(tlOsm);
-		map.addLayer(tlNorgeskart);
-		currentBaseLayer = tlNorgeskart;
+	var tl = tileLayers.find(t => t.name == document.getElementById("input-layer").value);
+	if (tl != undefined) {
+		map.removeLayer(currentBaseLayer);
+		map.addLayer(tl);
+		currentBaseLayer = tl;
 	}
 });
 map.addEventListener("zoomend", previewRoutePrint); // just for updating DPI value TODO: remove/optimize
