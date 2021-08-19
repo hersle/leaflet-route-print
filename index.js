@@ -322,8 +322,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 		l6.for = b6.id;
 		a6.id = "input-download";
 		a6.style.display = "inline";
+		a6.style.backgroundColor = "transparent";
 		a6.style.marginLeft = "0.5em";
-		a6.download = "route.pdf"; // suggested filename in browser
 		p6.append(l6, b6, a6);
 		container.append(p6);
 
@@ -382,6 +382,9 @@ function printMap(rects) {
 	var cont = document.getElementById("map");
 
 	function printRect(i) {
+		var a = document.getElementById("input-download");
+		a.innerHTML = `Downloading page ${i+1} of ${rects.length} ...`;
+
 		if (i == rects.length) {
 			document.dispatchEvent(new Event("printcomplete"));
 			return;
@@ -429,8 +432,13 @@ function previewRoutePrint() {
 }
 
 function printRouteFromInputs() {
+	document.getElementById("input-download").download = "";
 	document.getElementById("input-download").href = "";
 	document.getElementById("input-download").innerHTML = "";
+	document.getElementById("input-download").style.color = "black";
+	document.getElementById("input-download").style.textDecoration = "none";
+	document.getElementById("input-download").style.cursor = "default";
+	document.getElementById("input-download").style.pointerEvents = "none";
 	printRouteWrapper(true);
 }
 
@@ -493,8 +501,13 @@ async function printRouteWrapper(print) {
 			// to decide download filename: https://stackoverflow.com/a/56923508/3527139
 			var blob = pdf.output("blob");
 			var bloburl = URL.createObjectURL(blob);
+			document.getElementById("input-download").download = "route.pdf"; // suggested filename in browser
 			document.getElementById("input-download").innerHTML = "Download";
 			document.getElementById("input-download").href = bloburl;
+			document.getElementById("input-download").style.color = "blue";
+			document.getElementById("input-download").style.textDecoration = "underline";
+			document.getElementById("input-download").style.cursor = "pointer";
+			document.getElementById("input-download").style.pointerEvents = "auto";
 
 			imgDataUrls = []; // reset for next printing
 
