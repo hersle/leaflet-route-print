@@ -408,7 +408,7 @@ function printMap(rects) {
 		map.invalidateSize();
 
 		leafletImage(map, function(err, canvas) {
-			imgDataUrls.push(canvas.toDataURL());
+			imgDataUrls.push(canvas.toDataURL("image/jpeg")); // TODO: add options for format and quality
 			printRect(i+1);
 		});
 	}
@@ -492,7 +492,7 @@ async function printRouteWrapper(print) {
 				var img = imgDataUrls[i];
 				var imgw = orientation == "p" ? wmmPaper : hmmPaper;
 				var imgh = orientation == "p" ? hmmPaper : wmmPaper;
-				pdf.addImage(img, "jpeg", 0, 0, imgw, imgh);
+				pdf.addImage(img, "jpeg", 0, 0, imgw, imgh); // TODO: compress here, too?
 				pdf.text("Printed with hersle.github.io/leaflet-route-print", 0+5, 0+5, {align: "left", baseline: "top"});
 				pdf.text(`Page ${i+1} of ${rects.length}`, imgw-5, 0+5, {align: "right", baseline: "top"});
 				pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, imgh-5, {align: "left", baseline: "bottom"});
