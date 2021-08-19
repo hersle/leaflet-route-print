@@ -7,9 +7,6 @@ var map = L.map("map", {
 	preferCanvas: true,
 	zoomControl: false,
 });
-// inspired by https://stackoverflow.com/a/56904070/3527139
-map.createPane("rectangles");
-map.getPane("rectangles").style.opacity = "0.25";
 
 var tl1 = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
 tl1.name = "OpenStreetMap";
@@ -197,16 +194,16 @@ function printRoute(ll, w, h, p) {
 		rects[i][0] = [rects[i][0].lat, rects[i][0].lng];
 		rects[i][1] = [rects[i][1].lat, rects[i][1].lng];
 
-		L.rectangle(rects[i], {stroke: true, weight: 1, opacity: 1, color: "black", fillColor: "grey", fillOpacity: 1.0, pane: "rectangles"}).addTo(rectGroup);
+		L.rectangle(rects[i], {stroke: true, weight: 1, opacity: 1, color: "black", fillColor: "black", fillOpacity: 0.25}).addTo(rectGroup);
 		if (showInset) {
-			L.rectangle(orgrect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "black", pane: "rectangles"}).addTo(rectGroup);
+			L.rectangle(orgrect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "black"}).addTo(rectGroup);
 		}
 	}
 	/*
 	// show intersection points (only for debugging purposes)
 	if (showInset) {
 		for (const p of intersections) {
-			L.circleMarker(p, {radius: 5, stroke: false, color: "black", opacity: 1, fillOpacity: 1.0, pane: "rectangles"}).addTo(rectGroup);
+			L.circleMarker(p, {radius: 5, stroke: false, color: "black", opacity: 1, fillOpacity: 1.0}).addTo(rectGroup);
 		}
 	}
 	*/
