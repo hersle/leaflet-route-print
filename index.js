@@ -17,12 +17,8 @@ tl3.name = "Norgeskart (toporaster4)";
 var tl4 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
 tl4.name = "Norgeskart (topo4)";
 var tl5 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4graatone&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
-tl5.name = "Norgeskart (topo4 gråtone)";
-var tl6 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=norges_grunnkart&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
-tl6.name = "Norgeskart (grunnkart)";
-var tl7 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=norges_grunnkart_graatone&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
-tl7.name = "Norgeskart (grunnkart gråtone)";
-var tileLayers = [tl1, tl2, tl3, tl4, tl5, tl6, tl7];
+tl5.name = "Norgeskart (topo4 grå)";
+var tileLayers = [tl1, tl2, tl3, tl4, tl5];
 tl1.addTo(map);
 var currentBaseLayer = tl1;
 
@@ -213,14 +209,14 @@ var paperSizes = [];
 for (var n = 0; n <= 6; n++) {
 	var w = Math.floor(841  / 2**(n/2));
 	var h = Math.floor(1189 / 2**(n/2));
-	paperSizes.push({name: `A${n} (P)`, width: w, height: h});
-	paperSizes.push({name: `A${n} (L)`, width: h, height: w});
+	paperSizes.push({name: `A${n}P`, width: w, height: h});
+	paperSizes.push({name: `A${n}L`, width: h, height: w});
 }
 for (var n = 0; n <= 6; n++) {
 	var w = Math.floor(1000 / 2**(n/2));
 	var h = Math.floor(1414 / 2**(n/2));
-	paperSizes.push({name: `B${n} (P)`, width: w, height: h});
-	paperSizes.push({name: `B${n} (L)`, width: h, height: w});
+	paperSizes.push({name: `B${n}P`, width: w, height: h});
+	paperSizes.push({name: `B${n}L`, width: h, height: w});
 }
 
 // https://leafletjs.com/reference-0.7.7.html#icontrol
@@ -345,6 +341,7 @@ L.Control.MiscSelector = L.Control.extend({
 		i2.id = "input-routefile";
 		i2.type = "file";
 		i2.accept = ".gpx";
+		i2.style.width = "13em";
 		l2.innerHTML = "Route file:";
 		l2.for = i2.id;
 		p2.append(l2, i2);
