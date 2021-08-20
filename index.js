@@ -549,8 +549,20 @@ document.getElementById("input-routefile").addEventListener("change", async func
 				// have one newline, handle it
 				var regex = /trkpt lat="([+-]?\d+(?:\.\d+)?)" lon="([+-]?\d+(?:\.\d+)?)"/; // match <trkpt lat="float" lon="float"
 				var matches = l.match(regex);
+				var rev = false;
+				if (!matches || matches.length == 0) {
+					// try lat="" lon"" instead
+					regex = /trkpt lon="([+-]?\d+(?:\.\d+)?)" lat="([+-]?\d+(?:\.\d+)?)"/; // match <trkpt lat="float" lon="float"
+					matches = l.match(regex);
+					rev = true;
+					console.log("rev");
+				}
 				if (matches && matches.length == 3) { // have [fullmatch, lat, lon]
-					newpoints.push([parseFloat(matches[1]), parseFloat(matches[2])]);
+					if (rev) {
+						newpoints.push([parseFloat(matches[2]), parseFloat(matches[1])]);
+					} else {
+						newpoints.push([parseFloat(matches[1]), parseFloat(matches[2])]);
+					}
 				}
 
 				s = s.slice(i+1);
