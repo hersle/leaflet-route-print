@@ -180,7 +180,6 @@ function printRoute(ll, w, h, p) {
 		intersections[i] = map.unproject(intersections[i]);
 	}
 	rectGroup.clearLayers();
-	var showInset = document.getElementById("input-inset-preview").checked;
 	for (var i = 0; i < rects.length; i++) {
 		var orgrect = [[rects[i][0][0], rects[i][0][1]], [rects[i][1][0], rects[i][1][1]]];
 		orgrect[0] = map.unproject(orgrect[0]);
@@ -195,9 +194,7 @@ function printRoute(ll, w, h, p) {
 		rects[i][1] = [rects[i][1].lat, rects[i][1].lng];
 
 		L.rectangle(rects[i], {stroke: true, weight: 1, opacity: 1, color: "black", fillColor: "black", fillOpacity: 0.25}).addTo(rectGroup);
-		if (showInset) {
-			L.rectangle(orgrect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "black"}).addTo(rectGroup);
-		}
+		L.rectangle(orgrect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "gray"}).addTo(rectGroup);
 	}
 	/*
 	// show intersection points (only for debugging purposes)
@@ -232,9 +229,10 @@ L.Control.PrintRouteControl = L.Control.extend({
 		position: "topleft",
 	},
 	onAdd: function(map) {
-		var container = L.DomUtil.create("form", "text-input leaflet-bar");
-		container.style.backgroundColor = "white";
-		container.style.padding = "0.5em";
+		var div = L.DomUtil.create("div", "leaflet-bar");
+		div.style.backgroundColor = "white";
+		div.style.padding = "0.5em";
+		var container = L.DomUtil.create("form", "text-input");
 		container.addEventListener("click", function(event) {
 			event.stopPropagation();
 		});
@@ -247,17 +245,14 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		var p1 = L.DomUtil.create("p");
 		var l1 = L.DomUtil.create("label");
-		var i11 = L.DomUtil.create("input");
-		var i12 = L.DomUtil.create("input");
-		i11.id = "input-scale-paper";
-		i11.type = "number";
-		i11.defaultValue = 1;
-		i12.id = "input-scale-world";
-		i12.type = "number";
-		i12.defaultValue = 100000;
-		l1.innerHTML = "Map scale:";
-		l1.for = i11.id + " " + i11.id;
-		p1.append(l1, i11, " : ", i12);
+		var i1 = L.DomUtil.create("input");
+		i1.id = "input-scale-world";
+		i1.type = "number";
+		i1.defaultValue = 100000;
+		i1.style.width = "6em";
+		l1.innerHTML = "Scale:";
+		l1.for = i1.id;
+		p1.append(l1, "1 : ", i1);
 		container.append(p1);
 
 		var p2 = L.DomUtil.create("p");
@@ -268,15 +263,17 @@ L.Control.PrintRouteControl = L.Control.extend({
 		i21.id = "input-size-width";
 		i21.type = "number";
 		i21.defaultValue = 210;
+		i21.style.width = "3.5em";
 		i22.id = "input-size-height";
 		i22.type = "number";
 		i22.defaultValue = 297;
+		i22.style.width = "3.5em";
 		s2.id = "input-size-preset";
 		s2.append(new Option("free"));
 		for (var paperSize of paperSizes) {
 			s2.append(new Option(paperSize.name));
         }
-		l2.innerHTML = "Paper size:";
+		l2.innerHTML = "Paper:";
 		l2.for = i21.id + " " + i21.id;
 		p2.append(l2, i21, " mm x ", i22, " mm = ", s2);
 		container.append(p2);
@@ -284,44 +281,31 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var p4 = L.DomUtil.create("p");
 		var l4 = L.DomUtil.create("label");
 		var i4 = L.DomUtil.create("input");
-		var c4 = L.DomUtil.create("input");
 		i4.id = "input-inset";
 		i4.type = "number";
 		i4.defaultValue = 10;
-		l4.innerHTML = "Inset:";
+		i4.style.width = "3em";
+		l4.innerHTML = "Margin:";
 		l4.for = i4.id;
-		c4.id = "input-inset-preview";
-		c4.type = "checkbox";
-		c4.defaultChecked = true;
-		p4.append(l4, i4, " mm ", c4, "Preview");
+		p4.append(l4, i4, " mm ");
 		container.append(p4);
 
-		var p5 = L.DomUtil.create("p");
-		var l5 = L.DomUtil.create("label");
-		var i5 = L.DomUtil.create("div");
-		i5.id = "input-printinfo";
-		l5.innerHTML = "Output:";
-		p5.append(l5, i5);
-		container.append(p5);
-
-		var p6 = L.DomUtil.create("p");
-		var l6 = L.DomUtil.create("label");
 		var b6  = L.DomUtil.create("input");
 		var a6 = L.DomUtil.create("a");
 		b6.id = "input-print";
 		b6.type = "button";
-		b6.value = "Print to PDF";
+		b6.value = "Print";
 		b6.style.display = "inline";
-		l6.innerHTML = "Print:";
-		l6.for = b6.id;
 		a6.id = "input-download";
 		a6.style.display = "inline";
 		a6.style.backgroundColor = "transparent";
 		a6.style.marginLeft = "0.5em";
-		p6.append(l6, b6, a6);
-		container.append(p6);
+		
+		div.append(container);
+		div.append(b6, a6);
+		div.style.borderSpacing = "0.5em";
 
-		return container;
+		return div;
 	},
 });
 
@@ -333,6 +317,7 @@ L.Control.MiscSelector = L.Control.extend({
 		var container = L.DomUtil.create("form", "text-input leaflet-bar");
 		container.style.backgroundColor = "white";
 		container.style.padding = "0.5em";
+		container.style.borderSpacing = "0.5em";
 		container.addEventListener("click", function(event) {
 			event.stopPropagation();
 		});
@@ -420,21 +405,14 @@ function printMap(rects) {
 }
 
 function previewRoutePrint() {
-	// keep input fields as wide as they need to be
-	var i11 = document.getElementById("input-scale-paper");
-	var i12 = document.getElementById("input-scale-world");
-	var i21 = document.getElementById("input-size-width");
-	var i22 = document.getElementById("input-size-height");
-	var i4  = document.getElementById("input-inset");
-	i11.size = Math.max(1, i11.value.toString().length+1);
-	i12.size = Math.max(1, i12.value.toString().length+1);
-	i21.size = Math.max(1, i21.value.toString().length+1);
-	i22.size = Math.max(1, i22.value.toString().length+1);
-	i4.size  = Math.max(1, i4.value.toString().length+1);
 	printRouteWrapper(false);
 }
 
 function printRouteFromInputs() {
+	printRouteWrapper(true);
+}
+
+async function printRouteWrapper(print) {
 	document.getElementById("input-download").download = "";
 	document.getElementById("input-download").href = "";
 	document.getElementById("input-download").innerHTML = "";
@@ -442,11 +420,8 @@ function printRouteFromInputs() {
 	document.getElementById("input-download").style.textDecoration = "none";
 	document.getElementById("input-download").style.cursor = "default";
 	document.getElementById("input-download").style.pointerEvents = "none";
-	printRouteWrapper(true);
-}
 
-async function printRouteWrapper(print) {
-	var sPaper = parseInt(document.getElementById("input-scale-paper").value);
+	var sPaper = 1;
 	var sWorld = parseInt(document.getElementById("input-scale-world").value);
 	var wmmPaper = parseInt(document.getElementById("input-size-width").value);
 	var hmmPaper = parseInt(document.getElementById("input-size-height").value);
@@ -464,11 +439,11 @@ async function printRouteWrapper(print) {
 	var rects = printRoute(points, wpxWorld, hpxWorld, ppxWorld);
 
 	var dpi = Math.floor((wpxWorld / (wmmPaper / 25.4) + hpxWorld / (hmmPaper / 25.4)) / 2);
+	document.getElementById("input-download").innerHTML = `${rects.length} page${rects.length == 1 ? "" : "s"} of ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels at`;
 	var dpiSpan = document.createElement("span");
-	dpiSpan.innerHTML = `${dpi} DPI`;
-	dpiSpan.style.color = dpi >= 300 ? "green" : dpi >= 150 ? "gold" : "red";
-	document.getElementById("input-printinfo").innerHTML = `${rects.length} pages of ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels at `;
-	document.getElementById("input-printinfo").appendChild(dpiSpan);
+	dpiSpan.innerHTML = ` ${dpi} DPI`;
+	dpiSpan.style.color = dpi >= 300 ? "green" : dpi >= 150 ? "orange" : "red";
+	document.getElementById("input-download").appendChild(dpiSpan);
 
 	if (print) {
 		var printfunc = function() {
@@ -498,6 +473,7 @@ async function printRouteWrapper(print) {
 			document.getElementById("input-download").style.textDecoration = "underline";
 			document.getElementById("input-download").style.cursor = "pointer";
 			document.getElementById("input-download").style.pointerEvents = "auto";
+			document.getElementById("input-download").click(); // TODO: use link only as dummy?
 
 			imgDataUrls = []; // reset for next printing
 
@@ -535,7 +511,6 @@ function setRoute(pts) {
 }
 
 setRoute(points);
-document.getElementById("input-scale-paper").addEventListener("input", previewRoutePrint);
 document.getElementById("input-scale-world").addEventListener("input", previewRoutePrint);
 document.getElementById("input-size-width").addEventListener("input", previewRoutePrint);
 document.getElementById("input-size-height").addEventListener("input", previewRoutePrint);
@@ -556,7 +531,6 @@ function onInputSizeChange(event) {
 document.getElementById("input-size-width").addEventListener("input", onInputSizeChange);
 document.getElementById("input-size-height").addEventListener("input", onInputSizeChange);
 document.getElementById("input-inset").addEventListener("input", previewRoutePrint);
-document.getElementById("input-inset-preview").addEventListener("change", previewRoutePrint);
 document.getElementById("input-routefile").addEventListener("change", async function(event) {
 	var file = this.files[0];
 	var stream = file.stream();
