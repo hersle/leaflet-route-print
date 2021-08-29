@@ -22,39 +22,94 @@ var tileLayers = [tl1, tl2, tl3, tl4, tl5];
 tl1.addTo(map);
 var currentBaseLayer = tl1;
 
+class Rectangle {
+	constructor(min, max) {
+		this.min = min;
+		this.max = max;
+	}
+
+	get xmin() { return this.min.x; }
+	get ymin() { return this.min.y; }
+	get xmax() { return this.max.x; }
+	get ymax() { return this.max.y; }
+
+	get corner1() { return L.point(this.xmin, this.ymin); }
+	get corner2() { return L.point(this.xmax, this.ymin); }
+	get corner3() { return L.point(this.xmax, this.ymax); }
+	get corner4() { return L.point(this.xmin, this.ymax); }
+
+	get middle() { return this.min.add(this.max).divideBy(2); }
+
+	get size() { return this.max.subtract(this.min); }
+	get width() { return this.size.x; }
+	get height() { return this.size.y; }
+
+	center(c) {
+		var d = c.subtract(this.middle);
+		return new Rectangle(this.min.add(d), this.max.add(d));
+	}
+
+	extend(p) {
+		var min = L.point(Math.min(this.xmin, p.x), Math.min(this.ymin, p.y));
+		var max = L.point(Math.max(this.xmax, p.x), Math.max(this.ymax, p.y));
+		return new Rectangle(min, max);
+	}
+
+	extendBounded(d, w, h) {
+		var xmin, ymin, xmax, ymax;
+
+		if (d.x > 0) {
+			xmin = this.xmin;
+			xmax = this.xmax + w - this.width;
+		} else {
+			xmin = this.xmin - w + this.width;
+			xmax = this.xmax;
+		}
+		if (d.y > 0) {
+			ymin = this.ymin;
+			ymax = this.ymax + h - this.height;
+		} else {
+			ymin = this.ymin - h + this.height;
+			ymax = this.ymax;
+		}
+
+		return new Rectangle(L.point(xmin, ymin), L.point(xmax, ymax));
+	}
+
+	pad(p) {
+		return new Rectangle(this.min.subtract(L.point(p, p)), this.max.add(L.point(p,p)));
+	}
+
+	isSmallerThan(w, h) {
+		return this.size.x <= w && this.size.y <= h;
+	}
+}
+
 // keep all rectangles in one group
 var rectGroup = L.layerGroup();
 rectGroup.addTo(map);
 
-function rectIsOk(r, w, h) {
-	return r[1][0] - r[0][0] <= w && r[1][1] - r[0][1] <= h;
-}
-
-function growRect(r, x, y) {
-	return [[Math.min(r[0][0], x), Math.min(r[0][1], y)], [Math.max(r[1][0], x), Math.max(r[1][1], y)]];
-}
-
 function intersectSegments(l1, l2) {
 	// see https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line_segment
-	const [[x1, y1], [x2, y2]] = l1;
-	const [[x3, y3], [x4, y4]] = l2;
+	var x1 = l1[0].x, y1 = l1[0].y, x2 = l1[1].x, y2 = l1[1].y; // segment 1
+	var x3 = l2[0].x, y3 = l2[0].y, x4 = l2[1].x, y4 = l2[1].y; // segment 2
 	var d = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4);
 	var t = ((x1-x3)*(y3-y4) - (y1-y3)*(x3-x4)) / d;
 	var u = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / d;
 	if (d != 0 && t >= 0 && t <= 1 && u >= 0 && u <= 1) {
 		var x = x1 + t*(x2-x1);
 		var y = y1 + t*(y2-y1);
-		return [x, y];
+		return L.point(x, y);
 	} else {
 		return undefined
 	}
 }
 
 function intersectRectangleSegment(r, s) {
-	var p1 = r[0];
-	var p3 = r[1];
-	var p2 = [p3[0], p1[1]];
-	var p4 = [p1[0], p3[1]];
+	var p1 = r.corner1;
+	var p2 = r.corner2;
+	var p3 = r.corner3;
+	var p4 = r.corner4;
 	var s1 = [p1, p2];
 	var s2 = [p2, p3];
 	var s3 = [p3, p4];
@@ -63,85 +118,38 @@ function intersectRectangleSegment(r, s) {
 	for (var side of ss) {
 		var p = intersectSegments(s, side);
 		// don't register intersection if it is in the beginning corner
-		if (p != undefined && p[0] != s[0][0] && p[1] != s[0][1]) {
+		if (p != undefined && p.x != s[0].x && p.y != s[0].y) {
 			return p; // intersect with a side
 		}
 	}
 	return undefined; // no intersection
 }
 
-function growRectBounded(r, d, w, h) {
-	var min = r[0].slice(); // copy to avoid modifying input
-	var max = r[1].slice();
-	var size = [max[0] - min[0], max[1] - min[1]];
-
-	if (d[0] > 0) {
-		max[0] = max[0] + w - size[0];
-	} else {
-		min[0] = min[0] - w + size[0];
-	}
-
-	if (d[1] > 0) {
-		max[1] = max[1] + h - size[1];
-	} else {
-		min[1] = min[1] - h + size[1];
-	}
-
-	return [min, max];
-}
-
-function rectangleCenter(r) {
-	return [(r[0][0]+r[1][0])/2, (r[0][1]+r[1][1])/2]
-}
-
-function rectangleWidth(r) {
-	return r[1][0] - r[0][0];
-}
-
-function rectangleHeight(r) {
-	return r[1][1] - r[0][1];
-}
-
-function centerRectangle(r1, c2) {
-	var c1 = rectangleCenter(r1);
-	for (var i = 0; i < 2; i++) {
-		for (var j = 0; j < 2; j++) {
-			r1[i][j] += c2[j] - c1[j];
-		}
-	}
-	return r1;
-}
-
-function extendRectangle(r, p) {
-	return [[r[0][0]-p, r[0][1]-p], [r[1][0]+p, r[1][1]+p]];
-}
-
 function coverLineWithRectangles(l, w, h) {
 	var rects = [];
 	var intersections = [];
-	var rect = [[l[0][0], l[0][1]], [l[0][0], l[0][1]]];
+	var rect = new Rectangle(l[0], l[0]);
 	for (var i = 0; i < l.length; i++) {
-		var x = l[i][0];
-		var y = l[i][1];
-		var grect = growRect(rect, x, y);
-		if (i == 0 || rectIsOk(grect, w, h)) { // whole segment fits in rectangle [w,h]
+		var lpt = l[i];
+		var grect = rect.extend(lpt);
+		if (i == 0 || grect.isSmallerThan(w, h)) { // whole segment fits in rectangle [w,h]
 			rect = grect;
 		} else { // segment must be divided to fit in rectangle [w,h]
 			var s = [l[i-1], l[i]];
-			var vs = [s[1][0]-s[0][0],s[1][1]-s[0][1]];
-			var bigRect = growRectBounded(rect, vs, w, h); // create rectangle as big as possible in the direction of the segment 
+			var vs = s[1].subtract(s[0]);
+			var bigRect = rect.extendBounded(vs, w, h); // create rectangle as big as possible in the direction of the segment 
 			var p = intersectRectangleSegment(bigRect, s); // find where it intersects the segment
 			console.assert(p !== undefined, "no intersection point");
 			intersections.push(p); // store intersection point for debugging
 			l.splice(i, 0, p); // divide the segment
-			rect = growRect(rect, p[0], p[1]); // grow the cover rectangle to accomodate the intersection point
-			bigRect = centerRectangle([[0,0], [w,h]], rectangleCenter(rect)); // center the [w,h] rectangle on the area it must cover (there will be freedom in one direction only)
+			rect = rect.extend(p); // grow the cover rectangle to accomodate the intersection point
+			bigRect = (new Rectangle(L.point(0, 0), L.point(w, h))).center(rect.middle); // center the [w,h] rectangle on the area it must cover (there will be freedom in one direction only)
 			rects.push(bigRect);
-			var rect = [[l[i][0], l[i][1]], [l[i][0], l[i][1]]]; // reset the cover rectangle for new segments
+			var rect = new Rectangle(p, p); // reset the cover rectangle for new segments
 		}
 	}
 	// also print the last segments in a [w,h] rectangle
-	var bigRect = centerRectangle([[0,0], [w,h]], rectangleCenter(rect));
+	var bigRect = (new Rectangle(L.point(0, 0), L.point(w, h))).center(rect.middle);
 	rects.push(bigRect);
 	return [rects, intersections];
 }
@@ -167,7 +175,6 @@ function printRoute(ll, w, h, p) {
 	for (var i = 0; i < l.length; i++) {
 		// convert from geographical coordinates to pixel coordinates (so paper size becomes meaningful)
 		l[i] = map.project(l[i]);
-		l[i] = [l[i].x, l[i].y]
 	}
 	const [rects, intersections] = coverLineWithRectangles(l, w-2*p, h-2*p);
 
@@ -177,20 +184,14 @@ function printRoute(ll, w, h, p) {
 	}
 	rectGroup.clearLayers();
 	for (var i = 0; i < rects.length; i++) {
-		var orgrect = [[rects[i][0][0], rects[i][0][1]], [rects[i][1][0], rects[i][1][1]]];
-		orgrect[0] = map.unproject(orgrect[0]);
-		orgrect[1] = map.unproject(orgrect[1]);
-		orgrect[0] = [orgrect[0].lat, orgrect[0].lng];
-		orgrect[1] = [orgrect[1].lat, orgrect[1].lng];
+		var smallRect = rects[i];
+		var bigRect = smallRect.pad(p);
 
-		rects[i] = extendRectangle(rects[i], p);
-		rects[i][0] = map.unproject(rects[i][0]);
-		rects[i][1] = map.unproject(rects[i][1]);
-		rects[i][0] = [rects[i][0].lat, rects[i][0].lng];
-		rects[i][1] = [rects[i][1].lat, rects[i][1].lng];
+		smallRect = [map.unproject(smallRect.min), map.unproject(smallRect.max)];
+		bigRect = [map.unproject(bigRect.min), map.unproject(bigRect.max)];
 
-		L.rectangle(rects[i], {stroke: true, weight: 1, opacity: 1, color: "black", fillColor: "black", fillOpacity: 0.25}).addTo(rectGroup);
-		L.rectangle(orgrect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "gray"}).addTo(rectGroup);
+		L.rectangle(bigRect, {stroke: true, weight: 1, opacity: 1, color: "black", fillColor: "black", fillOpacity: 0.25}).addTo(rectGroup);
+		L.rectangle(smallRect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "gray"}).addTo(rectGroup);
 	}
 	/*
 	// show intersection points (only for debugging purposes)
@@ -369,15 +370,9 @@ function printMap(rects) {
 		}
 
 		var r = rects[i];
-		var rect = [[r[0][0], r[0][1]], [r[1][0], r[1][1]]]; // copy
-		rect[0] = map.project(rect[0]);
-		rect[1] = map.project(rect[1]);
-		rect[0] = [rect[0].x, rect[0].y];
-		rect[1] = [rect[1].x, rect[1].y];
-		var w = rectangleWidth(rect);
-		var h = rectangleHeight(rect);
-		var c = rectangleCenter(rect);
-		c = map.unproject(c);
+		var w = r.width;
+		var h = r.height;
+		var c = map.unproject(r.middle);
 
 		cont.style.width = `${w}px`;
 		cont.style.height = `${h}px`;
