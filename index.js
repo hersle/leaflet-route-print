@@ -19,7 +19,7 @@ tl4.name = "Norgeskart (topo4)";
 var tl5 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4graatone&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
 tl5.name = "Norgeskart (topo4 grå)";
 var tileLayers = [tl1, tl2, tl3, tl4, tl5];
-tl1.addTo(map);
+tl1.addTo(map); // default tile layer
 var currentBaseLayer = tl1;
 
 class Rectangle {
@@ -131,14 +131,14 @@ class Segment {
 var rectGroup = L.layerGroup();
 rectGroup.addTo(map);
 
+// TODO: (w,h) -> r as input
 function coverLineWithRectangles(l, w, h) {
 	var rects = [];
 	var intersections = [];
 	var rect = new Rectangle(l[0], l[0]);
-	for (var i = 0; i < l.length; i++) {
-		var lpt = l[i];
-		var grect = rect.extend(lpt);
-		if (i == 0 || grect.isSmallerThan(w, h)) { // whole segment fits in rectangle [w,h]
+	for (var i = 1; i < l.length; i++) {
+		var grect = rect.extend(l[i]);
+		if (grect.isSmallerThan(w, h)) { // whole segment fits in rectangle [w,h]
 			rect = grect;
 		} else { // segment must be divided to fit in rectangle [w,h]
 			var s = new Segment(l[i-1], l[i]);
@@ -147,16 +147,16 @@ function coverLineWithRectangles(l, w, h) {
 			var p = bigRect.intersection(s); // find where it intersects the segment
 			console.assert(p !== undefined, "no intersection point");
 			intersections.push(p); // store intersection point for debugging
-			l.splice(i, 0, p); // divide the segment
+			l.splice(i, 0, p); // divide the segment TODO: don't modify input array
 			rect = rect.extend(p); // grow the cover rectangle to accomodate the intersection point
-			bigRect = (new Rectangle(L.point(0, 0), L.point(w, h))).center(rect.middle); // center the [w,h] rectangle on the area it must cover (there will be freedom in one direction only)
-			rects.push(bigRect);
-			var rect = new Rectangle(p, p); // reset the cover rectangle for new segments
+			rect = (new Rectangle(L.point(0, 0), L.point(w, h))).center(rect.middle); // grow rectangle to full [w,h] size and center it on the area it must cover
+			rects.push(rect); // add the complete rectangle
+			rect = new Rectangle(p, p); // reset the cover rectangle for new segments
 		}
 	}
 	// also print the last segments in a [w,h] rectangle
-	var bigRect = (new Rectangle(L.point(0, 0), L.point(w, h))).center(rect.middle);
-	rects.push(bigRect);
+	rect = (new Rectangle(L.point(0, 0), L.point(w, h))).center(rect.middle);
+	rects.push(rect);
 	return [rects, intersections];
 }
 
@@ -177,14 +177,14 @@ function printRoute(ll, w, h, p) {
 	if (ll.length == 0) {
 		return;
 	}
-	var l = ll.slice(); // copy array
+	var l = ll.slice(); // copy array (algorithm will modify it) TODO: don't modify
 	for (var i = 0; i < l.length; i++) {
-		// convert from geographical coordinates to pixel coordinates (so paper size becomes meaningful)
-		l[i] = map.project(l[i]);
+		l[i] = map.project(l[i]); // geo to pixel coords (so paper size becomes meaningful)
 	}
 	const [rects, intersections] = coverLineWithRectangles(l, w-2*p, h-2*p);
 
 	// convert from pixel coordinates back to geographical coordinates
+	// TODO: better to not convert yet?
 	for (var i = 0; i < intersections.length; i++) {
 		intersections[i] = map.unproject(intersections[i]);
 	}
@@ -200,7 +200,7 @@ function printRoute(ll, w, h, p) {
 		L.rectangle(smallRect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "gray"}).addTo(rectGroup);
 	}
 	/*
-	// show intersection points (only for debugging purposes)
+	// show intersection points (only for debugging purposes) TODO: remove them completely
 	if (showInset) {
 		for (const p of intersections) {
 			L.circleMarker(p, {radius: 5, stroke: false, color: "black", opacity: 1, fillOpacity: 1.0}).addTo(rectGroup);
@@ -357,10 +357,6 @@ L.Control.MiscSelector = L.Control.extend({
 		return container;
 	},
 });
-
-function sleep(ms) {
-	return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 var imgDataUrls = [];
 function printMap(rects) {
