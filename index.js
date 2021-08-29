@@ -83,47 +83,53 @@ class Rectangle {
 	isSmallerThan(w, h) {
 		return this.size.x <= w && this.size.y <= h;
 	}
+
+	intersection(s) {
+		var s1 = new Segment(this.corner1, this.corner2);
+		var s2 = new Segment(this.corner2, this.corner3);
+		var s3 = new Segment(this.corner3, this.corner4);
+		var s4 = new Segment(this.corner4, this.corner1);
+		var ss = [s1, s2, s3, s4];
+		for (var side of ss) {
+			var p = s.intersection(side);
+			// don't register intersection if it is in the beginning corner
+			if (p != undefined && p.x != s.p1.x && p.y != s.p1.y) {
+				return p; // intersect with a side
+			}
+		}
+		return undefined; // no intersection
+	}
+}
+
+class Segment {
+	constructor(p1, p2) {
+		this.p1 = p1;
+		this.p2 = p2;
+	}
+
+	get displacement() { return this.p2.subtract(this.p1); }
+
+	intersection(s2) {
+		// see https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line_segment
+		var s1 = this;
+		var x1 = s1.p1.x, y1 = s1.p1.y, x2 = s1.p2.x, y2 = s1.p2.y; // segment 1
+		var x3 = s2.p1.x, y3 = s2.p1.y, x4 = s2.p2.x, y4 = s2.p2.y; // segment 2
+		var d = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4);
+		var t = ((x1-x3)*(y3-y4) - (y1-y3)*(x3-x4)) / d;
+		var u = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / d;
+		if (d != 0 && t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+			var x = x1 + t*(x2-x1);
+			var y = y1 + t*(y2-y1);
+			return L.point(x, y);
+		} else {
+			return undefined
+		}
+	}
 }
 
 // keep all rectangles in one group
 var rectGroup = L.layerGroup();
 rectGroup.addTo(map);
-
-function intersectSegments(l1, l2) {
-	// see https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line_segment
-	var x1 = l1[0].x, y1 = l1[0].y, x2 = l1[1].x, y2 = l1[1].y; // segment 1
-	var x3 = l2[0].x, y3 = l2[0].y, x4 = l2[1].x, y4 = l2[1].y; // segment 2
-	var d = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4);
-	var t = ((x1-x3)*(y3-y4) - (y1-y3)*(x3-x4)) / d;
-	var u = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / d;
-	if (d != 0 && t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-		var x = x1 + t*(x2-x1);
-		var y = y1 + t*(y2-y1);
-		return L.point(x, y);
-	} else {
-		return undefined
-	}
-}
-
-function intersectRectangleSegment(r, s) {
-	var p1 = r.corner1;
-	var p2 = r.corner2;
-	var p3 = r.corner3;
-	var p4 = r.corner4;
-	var s1 = [p1, p2];
-	var s2 = [p2, p3];
-	var s3 = [p3, p4];
-	var s4 = [p4, p1];
-	var ss = [s1, s2, s3, s4];
-	for (var side of ss) {
-		var p = intersectSegments(s, side);
-		// don't register intersection if it is in the beginning corner
-		if (p != undefined && p.x != s[0].x && p.y != s[0].y) {
-			return p; // intersect with a side
-		}
-	}
-	return undefined; // no intersection
-}
 
 function coverLineWithRectangles(l, w, h) {
 	var rects = [];
@@ -135,10 +141,10 @@ function coverLineWithRectangles(l, w, h) {
 		if (i == 0 || grect.isSmallerThan(w, h)) { // whole segment fits in rectangle [w,h]
 			rect = grect;
 		} else { // segment must be divided to fit in rectangle [w,h]
-			var s = [l[i-1], l[i]];
-			var vs = s[1].subtract(s[0]);
+			var s = new Segment(l[i-1], l[i]);
+			var vs = s.displacement;
 			var bigRect = rect.extendBounded(vs, w, h); // create rectangle as big as possible in the direction of the segment 
-			var p = intersectRectangleSegment(bigRect, s); // find where it intersects the segment
+			var p = bigRect.intersection(s); // find where it intersects the segment
 			console.assert(p !== undefined, "no intersection point");
 			intersections.push(p); // store intersection point for debugging
 			l.splice(i, 0, p); // divide the segment
