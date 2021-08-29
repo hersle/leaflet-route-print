@@ -160,17 +160,17 @@ function coverLineWithRectangles(l, w, h) {
 	return [rects, intersections];
 }
 
-// TODO: this should be done at the rectangle position(s), NOT at the map view position
-function pixelsToMeters(pixels) {
+function pixelsToMeters(pixels, pos) {
 	// https://stackoverflow.com/questions/49122416/use-value-from-scale-bar-on-a-leaflet-map
-	var containerMidHeight = map.getSize().y / 2,
-	point1 = map.containerPointToLatLng([0, containerMidHeight]),
-	point2 = map.containerPointToLatLng([pixels, containerMidHeight]);
+	point1 = map.latLngToLayerPoint(pos).add(L.point(-pixels/2, 0));
+	point2 = map.latLngToLayerPoint(pos).add(L.point(+pixels/2, 0));
+	point1 = map.layerPointToLatLng(point1);
+	point2 = map.layerPointToLatLng(point2);
 	return point1.distanceTo(point2);
 }
 
-function metersToPixels(meters) {
-	return meters / pixelsToMeters(1);
+function metersToPixels(meters, pos) {
+	return meters / pixelsToMeters(1, pos);
 }
 
 function printRoute(ll, w, h, p) {
@@ -426,9 +426,10 @@ async function printRouteWrapper(print) {
 	var hmmWorld = hmmPaper * worldToPaper;
 	var pmmWorld = pmmPaper * worldToPaper;
 
-	var wpxWorld = metersToPixels(wmmWorld / 1000);
-	var hpxWorld = metersToPixels(hmmWorld / 1000);
-	var ppxWorld = metersToPixels(pmmWorld / 1000);
+	var routeCenter = line.getCenter();
+	var wpxWorld = metersToPixels(wmmWorld / 1000, routeCenter);
+	var hpxWorld = metersToPixels(hmmWorld / 1000, routeCenter);
+	var ppxWorld = metersToPixels(pmmWorld / 1000, routeCenter);
 
 	var rects = printRoute(points, wpxWorld, hpxWorld, ppxWorld);
 
