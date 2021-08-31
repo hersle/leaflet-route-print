@@ -22,6 +22,19 @@ var tileLayers = [tl1, tl2, tl3, tl4, tl5];
 tl1.addTo(map); // default tile layer
 var currentBaseLayer = tl1;
 
+function pixelsToMeters(pixels, pos) {
+	// https://stackoverflow.com/questions/49122416/use-value-from-scale-bar-on-a-leaflet-map
+	point1 = map.latLngToLayerPoint(pos).add(L.point(-pixels/2, 0));
+	point2 = map.latLngToLayerPoint(pos).add(L.point(+pixels/2, 0));
+	point1 = map.layerPointToLatLng(point1);
+	point2 = map.layerPointToLatLng(point2);
+	return point1.distanceTo(point2);
+}
+
+function metersToPixels(meters, pos) {
+	return meters / pixelsToMeters(1, pos);
+}
+
 class Rectangle {
 	constructor(min, max) {
 		this.min = min;
@@ -127,10 +140,6 @@ class Segment {
 	}
 }
 
-// keep all rectangles in one group
-var rectGroup = L.layerGroup();
-rectGroup.addTo(map);
-
 // TODO: (w,h) -> r as input
 function coverLineWithRectangles(l, w, h) {
 	var rects = [];
@@ -160,78 +169,38 @@ function coverLineWithRectangles(l, w, h) {
 	return [rects, intersections];
 }
 
-function pixelsToMeters(pixels, pos) {
-	// https://stackoverflow.com/questions/49122416/use-value-from-scale-bar-on-a-leaflet-map
-	point1 = map.latLngToLayerPoint(pos).add(L.point(-pixels/2, 0));
-	point2 = map.latLngToLayerPoint(pos).add(L.point(+pixels/2, 0));
-	point1 = map.layerPointToLatLng(point1);
-	point2 = map.layerPointToLatLng(point2);
-	return point1.distanceTo(point2);
-}
-
-function metersToPixels(meters, pos) {
-	return meters / pixelsToMeters(1, pos);
-}
-
-function printRoute(ll, w, h, p) {
-	if (ll.length == 0) {
-		return;
-	}
-	var l = ll.slice(); // copy array (algorithm will modify it) TODO: don't modify
-	for (var i = 0; i < l.length; i++) {
-		l[i] = map.project(l[i]); // geo to pixel coords (so paper size becomes meaningful)
-	}
-	const [rects, intersections] = coverLineWithRectangles(l, w-2*p, h-2*p);
-
-	// convert from pixel coordinates back to geographical coordinates
-	// TODO: better to not convert yet?
-	for (var i = 0; i < intersections.length; i++) {
-		intersections[i] = map.unproject(intersections[i]);
-	}
-	rectGroup.clearLayers();
-	for (var i = 0; i < rects.length; i++) {
-		var smallRect = rects[i];
-		var bigRect = smallRect.pad(p);
-
-		smallRect = [map.unproject(smallRect.min), map.unproject(smallRect.max)];
-		bigRect = [map.unproject(bigRect.min), map.unproject(bigRect.max)];
-
-		L.rectangle(bigRect, {stroke: true, weight: 1, opacity: 1, color: "black", fillColor: "black", fillOpacity: 0.25}).addTo(rectGroup);
-		L.rectangle(smallRect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "gray"}).addTo(rectGroup);
-	}
-	/*
-	// show intersection points (only for debugging purposes) TODO: remove them completely
-	if (showInset) {
-		for (const p of intersections) {
-			L.circleMarker(p, {radius: 5, stroke: false, color: "black", opacity: 1, fillOpacity: 1.0}).addTo(rectGroup);
-		}
-	}
-	*/
-
-	return rects;
-}
-
-// list paper sizes from https://en.wikipedia.org/wiki/Paper_size#Overview_of_ISO_paper_sizes
-var paperSizes = [];
-for (var n = 0; n <= 6; n++) {
-	var w = Math.floor(841  / 2**(n/2));
-	var h = Math.floor(1189 / 2**(n/2));
-	paperSizes.push({name: `A${n}P`, width: w, height: h});
-	paperSizes.push({name: `A${n}L`, width: h, height: w});
-}
-for (var n = 0; n <= 6; n++) {
-	var w = Math.floor(1000 / 2**(n/2));
-	var h = Math.floor(1414 / 2**(n/2));
-	paperSizes.push({name: `B${n}P`, width: w, height: h});
-	paperSizes.push({name: `B${n}L`, width: h, height: w});
-}
-
 // https://leafletjs.com/reference-0.7.7.html#icontrol
 L.Control.PrintRouteControl = L.Control.extend({
 	options: {
 		position: "topleft",
 	},
-	onAdd: function(map) {
+
+	initialize: function() {
+		this.imgDataUrls = [];
+		// list paper sizes from https://en.wikipedia.org/wiki/Paper_size#Overview_of_ISO_paper_sizes
+		this.paperSizes = [];
+		for (var n = 0; n <= 6; n++) {
+			var w = Math.floor(841  / 2**(n/2));
+			var h = Math.floor(1189 / 2**(n/2));
+			this.paperSizes.push({name: `A${n}P`, width: w, height: h});
+			this.paperSizes.push({name: `A${n}L`, width: h, height: w});
+		}
+		for (var n = 0; n <= 6; n++) {
+			var w = Math.floor(1000 / 2**(n/2));
+			var h = Math.floor(1414 / 2**(n/2));
+			this.paperSizes.push({name: `B${n}P`, width: w, height: h});
+			this.paperSizes.push({name: `B${n}L`, width: h, height: w});
+		}
+	},
+
+	onAdd: function(map) { // constructor
+		this.line = L.polyline([]);
+		this.line.addTo(map);
+
+		// keep all rectangles in one group
+		this.rectGroup = L.layerGroup();
+		this.rectGroup.addTo(map);
+
 		var div = L.DomUtil.create("div", "leaflet-bar");
 		div.style.backgroundColor = "white";
 		div.style.padding = "0.5em";
@@ -273,7 +242,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		i22.style.width = "3.5em";
 		s2.id = "input-size-preset";
 		s2.append(new Option("free"));
-		for (var paperSize of paperSizes) {
+		for (var paperSize of this.paperSizes) {
 			s2.append(new Option(paperSize.name));
         }
 		l2.innerHTML = "Paper:";
@@ -308,8 +277,211 @@ L.Control.PrintRouteControl = L.Control.extend({
 		div.append(b6, a6);
 		div.style.borderSpacing = "0.5em";
 
+		i1.addEventListener("input", this.previewRoute.bind(this));
+		i21.addEventListener("input", this.previewRoute.bind(this));
+		i22.addEventListener("input", this.previewRoute.bind(this));
+		i21.addEventListener("input", this.onInputSizeChange);
+		i22.addEventListener("input", this.onInputSizeChange);
+		s2.addEventListener("input", function(event) {
+			if (s2.selectedIndex > 0) { // 0 is "free"
+				i21.value = this.paperSizes[s2.selectedIndex-1].width;
+				i22.value = this.paperSizes[s2.selectedIndex-1].height;
+				this.previewRoute();
+			}
+		}.bind(this));
+		i4.addEventListener("input", this.previewRoute.bind(this));
+		b6.addEventListener("click", this.printRoute.bind(this));
+
+		// TODO: fix that this event listener results in complaints about line not being added to map yet, wtf?
+		// map.addEventListener("zoomend", this.previewRoute.bind(this)); // just for updating DPI value TODO: remove/optimize
+
+		// this.previewRoute(); // TODO: can i do this here after saving all input fields in the class?
+
 		return div;
 	},
+
+	printRouteWrapper: async function(print) {
+		// update paper size preset
+		var w = document.getElementById("input-size-width").value;
+		var h = document.getElementById("input-size-height").value;
+		var i = this.paperSizes.findIndex(size => size.width == w && size.height == h);
+		document.getElementById("input-size-preset").selectedIndex = i+1;
+
+		document.getElementById("input-download").download = "";
+		document.getElementById("input-download").href = "";
+		document.getElementById("input-download").innerHTML = "";
+		document.getElementById("input-download").style.color = "black";
+		document.getElementById("input-download").style.textDecoration = "none";
+		document.getElementById("input-download").style.cursor = "default";
+		document.getElementById("input-download").style.pointerEvents = "none";
+
+		var sPaper = 1;
+		var sWorld = parseInt(document.getElementById("input-scale-world").value);
+		var wmmPaper = parseInt(document.getElementById("input-size-width").value);
+		var hmmPaper = parseInt(document.getElementById("input-size-height").value);
+		var pmmPaper = parseInt(document.getElementById("input-inset").value);
+		var paperToWorld = sPaper / sWorld;
+		var worldToPaper = 1 / paperToWorld;
+		var wmmWorld = wmmPaper * worldToPaper;
+		var hmmWorld = hmmPaper * worldToPaper;
+		var pmmWorld = pmmPaper * worldToPaper;
+
+		var routeCenter = this.line.getCenter();
+		var wpxWorld = metersToPixels(wmmWorld / 1000, routeCenter);
+		var hpxWorld = metersToPixels(hmmWorld / 1000, routeCenter);
+		var ppxWorld = metersToPixels(pmmWorld / 1000, routeCenter);
+
+		var rects = this.getRouteRectangles(this.line.getLatLngs(), wpxWorld, hpxWorld, ppxWorld);
+
+		var dpi = Math.floor((wpxWorld / (wmmPaper / 25.4) + hpxWorld / (hmmPaper / 25.4)) / 2);
+		document.getElementById("input-download").innerHTML = `${rects.length} page${rects.length == 1 ? "" : "s"} of ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels at`;
+		var dpiSpan = document.createElement("span");
+		dpiSpan.innerHTML = ` ${dpi} DPI`;
+		dpiSpan.style.color = dpi >= 300 ? "green" : dpi >= 150 ? "orange" : "red";
+		document.getElementById("input-download").appendChild(dpiSpan);
+
+		if (print) {
+			var printfunc = function() {
+				var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper]});
+				pdf.setFontSize(15);
+				for (var i = 0; i < rects.length; i++) {
+					var rect = rects[i];
+					if (i > 0) {
+						pdf.addPage([wmmPaper, hmmPaper]);
+					}
+					var img = this.imgDataUrls[i];
+					pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper); // TODO: compress here, too?
+					pdf.text("Printed with hersle.github.io/leaflet-route-print", 0+5, 0+5, {align: "left", baseline: "top"});
+					pdf.text(`Page ${i+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
+					pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
+					pdf.text(currentBaseLayer.getAttribution().replace(/<[^>]*>/g, ""), wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
+				}
+				// to decide download filename: https://stackoverflow.com/a/56923508/3527139
+				var blob = pdf.output("blob");
+				var bytes = blob.size;
+				var megabytes = (bytes / 1e6).toFixed(1); // 1 decimal
+				var bloburl = URL.createObjectURL(blob);
+				document.getElementById("input-download").download = "route.pdf"; // suggested filename in browser
+				document.getElementById("input-download").innerHTML = `Download PDF (${megabytes} MB)`;
+				document.getElementById("input-download").href = bloburl;
+				document.getElementById("input-download").style.color = "blue";
+				document.getElementById("input-download").style.textDecoration = "underline";
+				document.getElementById("input-download").style.cursor = "pointer";
+				document.getElementById("input-download").style.pointerEvents = "auto";
+				document.getElementById("input-download").click(); // TODO: use link only as dummy?
+
+				this.imgDataUrls = []; // reset for next printing
+
+				map.getContainer().style.width = originalWidth;
+				map.getContainer().style.height = originalHeight;
+				map.invalidateSize();
+
+				map.addLayer(this.rectGroup);
+				document.removeEventListener("printcomplete", printfunc);
+			}.bind(this);
+			document.addEventListener("printcomplete", printfunc);
+
+			map.removeLayer(this.rectGroup);
+
+			var originalWidth = map.getContainer().style.width;
+			var originalHeight = map.getContainer().style.height;
+
+			this.printMap(rects);
+		}
+	},
+
+	getRouteRectangles: function(ll, w, h, p) {
+		if (ll.length == 0) {
+			return;
+		}
+		var l = ll.slice(); // copy array (algorithm will modify it) TODO: don't modify
+		for (var i = 0; i < l.length; i++) {
+			l[i] = map.project(l[i]); // geo to pixel coords (so paper size becomes meaningful)
+		}
+		const [rects, intersections] = coverLineWithRectangles(l, w-2*p, h-2*p);
+
+		// convert from pixel coordinates back to geographical coordinates
+		// TODO: better to not convert yet?
+		for (var i = 0; i < intersections.length; i++) {
+			intersections[i] = map.unproject(intersections[i]);
+		}
+		this.rectGroup.clearLayers();
+		for (var i = 0; i < rects.length; i++) {
+			var smallRect = rects[i];
+			var bigRect = smallRect.pad(p);
+
+			smallRect = [map.unproject(smallRect.min), map.unproject(smallRect.max)];
+			bigRect = [map.unproject(bigRect.min), map.unproject(bigRect.max)];
+
+			L.rectangle(bigRect, {stroke: true, weight: 1, opacity: 1, color: "black", fillColor: "black", fillOpacity: 0.25}).addTo(this.rectGroup);
+			L.rectangle(smallRect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "gray"}).addTo(this.rectGroup);
+		}
+		/*
+		// show intersection points (only for debugging purposes) TODO: remove them completely
+		if (showInset) {
+			for (const p of intersections) {
+				L.circleMarker(p, {radius: 5, stroke: false, color: "black", opacity: 1, fillOpacity: 1.0}).addTo(this.rectGroup);
+			}
+		}
+		*/
+
+		return rects;
+	},
+
+	previewRoute: function() {
+		// here, "this" is not necessarily the class instance, since this function is called from an event listener, which replaces the "this" value with the element that fired the event
+		// for resolutions, see https://stackoverflow.com/a/43727582/3527139
+		this.printRouteWrapper(false);
+	},
+
+	printRoute: function() {
+		this.printRouteWrapper(true);
+	},
+
+	setRoute: function(points) {
+		this.line.setLatLngs(points);
+		map.fitBounds(this.line.getBounds());
+		this.previewRoute();
+	},
+
+	printMap: function(rects) {
+		var cont = document.getElementById("map");
+
+		var printRect = function(i) {
+			var a = document.getElementById("input-download");
+			a.innerHTML = `Downloading page ${i+1} of ${rects.length} ...`;
+
+			if (i == rects.length) {
+				document.dispatchEvent(new Event("printcomplete"));
+				return;
+			}
+
+			var r = rects[i];
+			var w = r.width;
+			var h = r.height;
+			var c = map.unproject(r.middle);
+
+			cont.style.width = `${w}px`;
+			cont.style.height = `${h}px`;
+			map.invalidateSize();
+			map.setView(c, map.getZoom(), {animate: false});
+			map.invalidateSize();
+
+			leafletImage(map, function(err, canvas) {
+				// make canvas background white, since jpeg does not support white background
+				// https://stackoverflow.com/a/56085861/3527139
+				var ctx = canvas.getContext("2d");
+				ctx.globalCompositeOperation = 'destination-over';
+				ctx.fillStyle = "white";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				this.imgDataUrls.push(canvas.toDataURL("image/jpeg")); // TODO: add options for format and quality
+				printRect(i+1);
+			}.bind(this));
+		}.bind(this);
+
+		printRect(0);
+	}
 });
 
 L.Control.MiscSelector = L.Control.extend({
@@ -354,232 +526,66 @@ L.Control.MiscSelector = L.Control.extend({
 		p2.append(l2, i2);
 		container.append(p2);
 
+		i2.addEventListener("change", async function(event) {
+			var file = this.files[0];
+			var stream = file.stream();
+			var reader = stream.getReader();
+			const utf8Decoder = new TextDecoder("utf-8");
+			var done = false;
+			var newpoints = [];
+			while (!done) {
+				var res = await reader.read();
+				done = res.done;
+				var s = utf8Decoder.decode(res.value, {stream: true});
+				var l = "";
+				while (true) {
+					var i = s.indexOf("\n");
+					l += s.slice(0, i);
+					if (i == -1) {
+						break;
+					} else {
+						// have one newline, handle it
+						var regex = /trkpt lat="([+-]?\d+(?:\.\d+)?)" lon="([+-]?\d+(?:\.\d+)?)"/; // match <trkpt lat="float" lon="float"
+						var matches = l.match(regex);
+						var rev = false;
+						if (!matches || matches.length == 0) {
+							// try lat="" lon"" instead
+							regex = /trkpt lon="([+-]?\d+(?:\.\d+)?)" lat="([+-]?\d+(?:\.\d+)?)"/; // match <trkpt lat="float" lon="float"
+							matches = l.match(regex);
+							rev = true;
+						}
+						if (matches && matches.length == 3) { // have [fullmatch, lat, lon]
+							if (rev) {
+								newpoints.push([parseFloat(matches[2]), parseFloat(matches[1])]);
+							} else {
+								newpoints.push([parseFloat(matches[1]), parseFloat(matches[2])]);
+							}
+						}
+
+						s = s.slice(i+1);
+						l = "";
+					}
+				}
+			}
+			routePrinter.setRoute(newpoints);
+		});
+		s1.addEventListener("change", function(event) {
+			var tl = tileLayers.find(t => t.name == document.getElementById("input-layer").value);
+			if (tl != undefined) {
+				map.removeLayer(currentBaseLayer);
+				map.addLayer(tl);
+				currentBaseLayer = tl;
+			}
+		});
+
 		return container;
 	},
 });
 
-var imgDataUrls = [];
-function printMap(rects) {
-	var cont = document.getElementById("map");
+var routePrinter = new L.Control.PrintRouteControl();
+routePrinter.addTo(map);
+routePrinter.setRoute(points);
 
-	function printRect(i) {
-		var a = document.getElementById("input-download");
-		a.innerHTML = `Downloading page ${i+1} of ${rects.length} ...`;
-
-		if (i == rects.length) {
-			document.dispatchEvent(new Event("printcomplete"));
-			return;
-		}
-
-		var r = rects[i];
-		var w = r.width;
-		var h = r.height;
-		var c = map.unproject(r.middle);
-
-		cont.style.width = `${w}px`;
-		cont.style.height = `${h}px`;
-		map.invalidateSize();
-		map.setView(c, map.getZoom(), {animate: false});
-		map.invalidateSize();
-
-		leafletImage(map, function(err, canvas) {
-			// make canvas background white, since jpeg does not support white background
-			// https://stackoverflow.com/a/56085861/3527139
-			var ctx = canvas.getContext("2d");
-			ctx.globalCompositeOperation = 'destination-over';
-			ctx.fillStyle = "white";
-			ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-			imgDataUrls.push(canvas.toDataURL("image/jpeg")); // TODO: add options for format and quality
-			printRect(i+1);
-		});
-	}
-
-	printRect(0);
-}
-
-function previewRoutePrint() {
-	printRouteWrapper(false);
-}
-
-function printRouteFromInputs() {
-	printRouteWrapper(true);
-}
-
-async function printRouteWrapper(print) {
-	document.getElementById("input-download").download = "";
-	document.getElementById("input-download").href = "";
-	document.getElementById("input-download").innerHTML = "";
-	document.getElementById("input-download").style.color = "black";
-	document.getElementById("input-download").style.textDecoration = "none";
-	document.getElementById("input-download").style.cursor = "default";
-	document.getElementById("input-download").style.pointerEvents = "none";
-
-	var sPaper = 1;
-	var sWorld = parseInt(document.getElementById("input-scale-world").value);
-	var wmmPaper = parseInt(document.getElementById("input-size-width").value);
-	var hmmPaper = parseInt(document.getElementById("input-size-height").value);
-	var pmmPaper = parseInt(document.getElementById("input-inset").value);
-	var paperToWorld = sPaper / sWorld;
-	var worldToPaper = 1 / paperToWorld;
-	var wmmWorld = wmmPaper * worldToPaper;
-	var hmmWorld = hmmPaper * worldToPaper;
-	var pmmWorld = pmmPaper * worldToPaper;
-
-	var routeCenter = line.getCenter();
-	var wpxWorld = metersToPixels(wmmWorld / 1000, routeCenter);
-	var hpxWorld = metersToPixels(hmmWorld / 1000, routeCenter);
-	var ppxWorld = metersToPixels(pmmWorld / 1000, routeCenter);
-
-	var rects = printRoute(points, wpxWorld, hpxWorld, ppxWorld);
-
-	var dpi = Math.floor((wpxWorld / (wmmPaper / 25.4) + hpxWorld / (hmmPaper / 25.4)) / 2);
-	document.getElementById("input-download").innerHTML = `${rects.length} page${rects.length == 1 ? "" : "s"} of ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels at`;
-	var dpiSpan = document.createElement("span");
-	dpiSpan.innerHTML = ` ${dpi} DPI`;
-	dpiSpan.style.color = dpi >= 300 ? "green" : dpi >= 150 ? "orange" : "red";
-	document.getElementById("input-download").appendChild(dpiSpan);
-
-	if (print) {
-		var printfunc = function() {
-			var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper]});
-			pdf.setFontSize(15);
-			for (var i = 0; i < rects.length; i++) {
-				var rect = rects[i];
-				if (i > 0) {
-					pdf.addPage([wmmPaper, hmmPaper]);
-				}
-				var img = imgDataUrls[i];
-				pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper); // TODO: compress here, too?
-				pdf.text("Printed with hersle.github.io/leaflet-route-print", 0+5, 0+5, {align: "left", baseline: "top"});
-				pdf.text(`Page ${i+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
-				pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
-				pdf.text(currentBaseLayer.getAttribution().replace(/<[^>]*>/g, ""), wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
-			}
-			// to decide download filename: https://stackoverflow.com/a/56923508/3527139
-			var blob = pdf.output("blob");
-			var bytes = blob.size;
-			var megabytes = (bytes / 1e6).toFixed(1); // 1 decimal
-			var bloburl = URL.createObjectURL(blob);
-			document.getElementById("input-download").download = "route.pdf"; // suggested filename in browser
-			document.getElementById("input-download").innerHTML = `Download PDF (${megabytes} MB)`;
-			document.getElementById("input-download").href = bloburl;
-			document.getElementById("input-download").style.color = "blue";
-			document.getElementById("input-download").style.textDecoration = "underline";
-			document.getElementById("input-download").style.cursor = "pointer";
-			document.getElementById("input-download").style.pointerEvents = "auto";
-			document.getElementById("input-download").click(); // TODO: use link only as dummy?
-
-			imgDataUrls = []; // reset for next printing
-
-			map.getContainer().style.width = originalWidth;
-			map.getContainer().style.height = originalHeight;
-			map.invalidateSize();
-
-			map.addLayer(rectGroup);
-			document.removeEventListener("printcomplete", printfunc);
-		};
-		document.addEventListener("printcomplete", printfunc);
-
-		map.removeLayer(rectGroup);
-
-		var originalWidth = map.getContainer().style.width;
-		var originalHeight = map.getContainer().style.height;
-
-		printMap(rects);
-	}
-}
-
-map.addControl(new L.Control.PrintRouteControl());
 map.addControl(new L.Control.MiscSelector());
 L.control.zoom().addTo(map);
 L.control.scale({metric: true, imperial: false}).addTo(map);
-
-var line = L.polyline([]);
-var lineGroup = L.layerGroup();
-lineGroup.addLayer(line);
-lineGroup.addTo(map);
-function setRoute(pts) {
-	points = pts;
-	line.setLatLngs(pts);
-	map.fitBounds(line.getBounds());
-}
-
-setRoute(points);
-document.getElementById("input-scale-world").addEventListener("input", previewRoutePrint);
-document.getElementById("input-size-width").addEventListener("input", previewRoutePrint);
-document.getElementById("input-size-height").addEventListener("input", previewRoutePrint);
-document.getElementById("input-print").addEventListener("click", printRouteFromInputs);
-document.getElementById("input-size-preset").addEventListener("input", function(event) {
-	if (this.selectedIndex > 0) { // 0 is "free"
-		document.getElementById("input-size-width").value = paperSizes[this.selectedIndex-1].width;
-		document.getElementById("input-size-height").value = paperSizes[this.selectedIndex-1].height;
-		previewRoutePrint();
-	}
-});
-function onInputSizeChange(event) {
-	var w = document.getElementById("input-size-width").value;
-	var h = document.getElementById("input-size-height").value;
-	var i = paperSizes.findIndex(size => size.width == w && size.height == h);
-	document.getElementById("input-size-preset").selectedIndex = i+1;
-}
-document.getElementById("input-size-width").addEventListener("input", onInputSizeChange);
-document.getElementById("input-size-height").addEventListener("input", onInputSizeChange);
-document.getElementById("input-inset").addEventListener("input", previewRoutePrint);
-document.getElementById("input-routefile").addEventListener("change", async function(event) {
-	var file = this.files[0];
-	var stream = file.stream();
-	var reader = stream.getReader();
-	const utf8Decoder = new TextDecoder("utf-8");
-	var done = false;
-	var newpoints = [];
-	while (!done) {
-		var res = await reader.read();
-		done = res.done;
-		var s = utf8Decoder.decode(res.value, {stream: true});
-		var l = "";
-		while (true) {
-			var i = s.indexOf("\n");
-			l += s.slice(0, i);
-			if (i == -1) {
-				break;
-			} else {
-				// have one newline, handle it
-				var regex = /trkpt lat="([+-]?\d+(?:\.\d+)?)" lon="([+-]?\d+(?:\.\d+)?)"/; // match <trkpt lat="float" lon="float"
-				var matches = l.match(regex);
-				var rev = false;
-				if (!matches || matches.length == 0) {
-					// try lat="" lon"" instead
-					regex = /trkpt lon="([+-]?\d+(?:\.\d+)?)" lat="([+-]?\d+(?:\.\d+)?)"/; // match <trkpt lat="float" lon="float"
-					matches = l.match(regex);
-					rev = true;
-					console.log("rev");
-				}
-				if (matches && matches.length == 3) { // have [fullmatch, lat, lon]
-					if (rev) {
-						newpoints.push([parseFloat(matches[2]), parseFloat(matches[1])]);
-					} else {
-						newpoints.push([parseFloat(matches[1]), parseFloat(matches[2])]);
-					}
-				}
-
-				s = s.slice(i+1);
-				l = "";
-			}
-		}
-	}
-	points = newpoints;
-	line.setLatLngs(points);
-	map.fitBounds(line.getBounds());
-});
-document.getElementById("input-layer").addEventListener("change", function(event) {
-	var tl = tileLayers.find(t => t.name == document.getElementById("input-layer").value);
-	if (tl != undefined) {
-		map.removeLayer(currentBaseLayer);
-		map.addLayer(tl);
-		currentBaseLayer = tl;
-	}
-});
-map.addEventListener("zoomend", previewRoutePrint); // just for updating DPI value TODO: remove/optimize
-previewRoutePrint();
-onInputSizeChange();
