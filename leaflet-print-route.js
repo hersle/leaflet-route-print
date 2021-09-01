@@ -1,3 +1,14 @@
+function setProperties(element, properties, style) {
+	Object.assign(element, properties);
+	Object.assign(element.style, style);
+}
+
+function createElement(type, properties, style) {
+	var element = document.createElement(type);
+	setProperties(element, properties, style);
+	return element;
+}
+
 function pixelsToMeters(map, pixels, pos) {
 	// https://stackoverflow.com/questions/49122416/use-value-from-scale-bar-on-a-leaflet-map
 	point1 = map.latLngToLayerPoint(pos).add(L.point(-pixels/2, 0));
@@ -179,10 +190,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.rectGroup = L.layerGroup();
 		this.rectGroup.addTo(this.map);
 
-		var div = L.DomUtil.create("div", "leaflet-bar");
-		div.style.backgroundColor = "white";
-		div.style.padding = "0.5em";
-		var container = L.DomUtil.create("form", "text-input");
+		var div = createElement("div", {className: "leaflet-bar"}, {backgroundColor: "white", padding: "0.5em", borderSpacing: "0.5em"});
+		var container = createElement("form", {className: "text-input"});
 		container.addEventListener("click", function(event) {
 			event.stopPropagation();
 		});
@@ -193,67 +202,34 @@ L.Control.PrintRouteControl = L.Control.extend({
 			event.stopPropagation();
 		});
 
-		this.inputScale = L.DomUtil.create("input");
-		this.inputScale.id = "input-scale-world";
-		this.inputScale.type = "number";
-		this.inputScale.defaultValue = 100000;
-		this.inputScale.style.width = "6em";
-		var l = L.DomUtil.create("label");
-		l.innerHTML = "Scale:";
-		l.for = this.inputScale.id;
-		var p = L.DomUtil.create("p");
+		this.inputScale = createElement("input", {id: "input-scale-world", type: "number", defaultValue: 100000}, {width: "6em"});
+		var l = createElement("label", {innerHTML: "Scale:", for: this.inputScale.id});
+		var p = createElement("p");
 		p.append(l, "1 : ", this.inputScale);
 		container.append(p);
 
-		this.inputWidth = L.DomUtil.create("input");
-		this.inputHeight = L.DomUtil.create("input");
-		this.inputPreset  = L.DomUtil.create("select");
-		this.inputWidth.id = "input-size-width";
-		this.inputWidth.type = "number";
-		this.inputWidth.defaultValue = 210;
-		this.inputWidth.style.width = "3.5em";
-		this.inputHeight.id = "input-size-height";
-		this.inputHeight.type = "number";
-		this.inputHeight.defaultValue = 297;
-		this.inputHeight.style.width = "3.5em";
-		this.inputPreset.id = "input-size-preset";
+		this.inputWidth = createElement("input", {id: "input-size-width", type: "number", defaultValue: 210}, {width: "3.5em"});
+		this.inputHeight = createElement("input", {id: "input-size-height", type: "number", defaultValue: 297}, {width: "3.5em"});
+		this.inputPreset  = createElement("select", {id: "input-size-preset"});
 		this.inputPreset.append(new Option("free"));
 		for (var paperSize of this.paperSizes) {
 			this.inputPreset.append(new Option(paperSize.name));
         }
-		l = L.DomUtil.create("label");
-		l.innerHTML = "Paper:";
-		l.for = this.inputWidth.id + " " + this.inputWidth.id;
-		p = L.DomUtil.create("p");
+		l = createElement("label", {innerHTML: "Paper:", for: this.inputWidth.id + " " + this.inputHeight.id});
+		p = createElement("p");
 		p.append(l, this.inputWidth, " mm x ", this.inputHeight, " mm = ", this.inputPreset);
 		container.append(p);
 
-		this.inputMargin = L.DomUtil.create("input");
-		this.inputMargin.id = "input-inset";
-		this.inputMargin.type = "number";
-		this.inputMargin.defaultValue = 10;
-		this.inputMargin.style.width = "3em";
-		l = L.DomUtil.create("label");
-		l.innerHTML = "Margin:";
-		l.for = this.inputMargin.id;
-		p = L.DomUtil.create("p");
+		this.inputMargin = createElement("input", {id: "input-inset", type: "number", defaultValue: 10}, {width: "3em"});
+		l = createElement("label", {innerHTML: "Margin:", for: this.inputMargin.id});
+		p = createElement("p");
 		p.append(l, this.inputMargin, " mm ");
 		container.append(p);
 
-		this.inputPrint  = L.DomUtil.create("input");
-		this.inputDownload = L.DomUtil.create("a");
-		this.inputPrint.id = "input-print";
-		this.inputPrint.type = "button";
-		this.inputPrint.value = "Print";
-		this.inputPrint.style.display = "inline";
-		this.inputDownload.id = "input-download";
-		this.inputDownload.style.display = "inline";
-		this.inputDownload.style.backgroundColor = "transparent";
-		this.inputDownload.style.marginLeft = "0.5em";
-		
+		this.inputPrint = createElement("input", {id: "input-print", type: "button", value: "Print"}, {display: "inline"});
+		this.inputDownload = createElement("a", {id: "input-download"}, {display: "inline", backgroundColor: "transparent", marginLeft: "0.5em"});
 		div.append(container);
 		div.append(this.inputPrint, this.inputDownload);
-		div.style.borderSpacing = "0.5em";
 
 		this.inputScale.addEventListener("input", this.previewRoute.bind(this));
 		this.inputWidth.addEventListener("input", this.previewRoute.bind(this));
@@ -285,13 +261,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var i = this.paperSizes.findIndex(size => size.width == w && size.height == h);
 		this.inputPreset.selectedIndex = i+1; // if i is -1, the index becomes 0 (free)
 
-		this.inputDownload.download = "";
-		this.inputDownload.href = "";
-		this.inputDownload.innerHTML = "";
-		this.inputDownload.style.color = "black";
-		this.inputDownload.style.textDecoration = "none";
-		this.inputDownload.style.cursor = "default";
-		this.inputDownload.style.pointerEvents = "none";
+		setProperties(this.inputDownload, {download: "", href: "", innerHTML: ""}, {color: "black", textDecoration: "none", cursor: "default", pointerEvents: "none"});
 
 		var sPaper = 1;
 		var sWorld = parseInt(this.inputScale.value);
@@ -340,13 +310,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 				var bytes = blob.size;
 				var megabytes = (bytes / 1e6).toFixed(1); // 1 decimal
 				var bloburl = URL.createObjectURL(blob);
-				this.inputDownload.download = "route.pdf"; // suggested filename in browser
-				this.inputDownload.innerHTML = `Download PDF (${megabytes} MB)`;
-				this.inputDownload.href = bloburl;
-				this.inputDownload.style.color = "blue";
-				this.inputDownload.style.textDecoration = "underline";
-				this.inputDownload.style.cursor = "pointer";
-				this.inputDownload.style.pointerEvents = "auto";
+				setProperties(this.inputDownload, {download: "route.pdf", innerHTML: `Download PDF (${megabytes} MB)`, href: bloburl}, {color: "blue", textDecoration: "underline", cursor: "pointer", pointerEvents: "auto"});
 				this.inputDownload.click(); // TODO: use link only as dummy?
 
 				this.imgDataUrls = []; // reset for next printing
