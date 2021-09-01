@@ -318,12 +318,13 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		if (print) {
 			var printfunc = function() {
-				var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper]});
+				var orientation = wmmPaper > hmmPaper ? "landscape" : "portrait";
+				var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper], orientation: orientation});
 				pdf.setFontSize(15);
 				for (var i = 0; i < rects.length; i++) {
 					var rect = rects[i];
 					if (i > 0) {
-						pdf.addPage([wmmPaper, hmmPaper]);
+						pdf.addPage([wmmPaper, hmmPaper], orientation);
 					}
 					var img = this.imgDataUrls[i];
 					pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper); // TODO: compress here, too?
