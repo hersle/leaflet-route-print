@@ -1,4 +1,4 @@
-function pixelsToMeters(pixels, pos) {
+function pixelsToMeters(map, pixels, pos) {
 	// https://stackoverflow.com/questions/49122416/use-value-from-scale-bar-on-a-leaflet-map
 	point1 = map.latLngToLayerPoint(pos).add(L.point(-pixels/2, 0));
 	point2 = map.latLngToLayerPoint(pos).add(L.point(+pixels/2, 0));
@@ -7,8 +7,8 @@ function pixelsToMeters(pixels, pos) {
 	return point1.distanceTo(point2);
 }
 
-function metersToPixels(meters, pos) {
-	return meters / pixelsToMeters(1, pos);
+function metersToPixels(map, meters, pos) {
+	return meters / pixelsToMeters(map, 1, pos);
 }
 
 class Rectangle {
@@ -170,12 +170,14 @@ L.Control.PrintRouteControl = L.Control.extend({
 	},
 
 	onAdd: function(map) { // constructor
+		this.map = map;
+
 		this.line = L.polyline([]);
-		this.line.addTo(map);
+		this.line.addTo(this.map);
 
 		// keep all rectangles in one group
 		this.rectGroup = L.layerGroup();
-		this.rectGroup.addTo(map);
+		this.rectGroup.addTo(this.map);
 
 		var div = L.DomUtil.create("div", "leaflet-bar");
 		div.style.backgroundColor = "white";
@@ -191,85 +193,85 @@ L.Control.PrintRouteControl = L.Control.extend({
 			event.stopPropagation();
 		});
 
-		var p1 = L.DomUtil.create("p");
-		var l1 = L.DomUtil.create("label");
-		var i1 = L.DomUtil.create("input");
-		i1.id = "input-scale-world";
-		i1.type = "number";
-		i1.defaultValue = 100000;
-		i1.style.width = "6em";
-		l1.innerHTML = "Scale:";
-		l1.for = i1.id;
-		p1.append(l1, "1 : ", i1);
-		container.append(p1);
+		this.inputScale = L.DomUtil.create("input");
+		this.inputScale.id = "input-scale-world";
+		this.inputScale.type = "number";
+		this.inputScale.defaultValue = 100000;
+		this.inputScale.style.width = "6em";
+		var l = L.DomUtil.create("label");
+		l.innerHTML = "Scale:";
+		l.for = this.inputScale.id;
+		var p = L.DomUtil.create("p");
+		p.append(l, "1 : ", this.inputScale);
+		container.append(p);
 
-		var p2 = L.DomUtil.create("p");
-		var l2 = L.DomUtil.create("label");
-		var i21 = L.DomUtil.create("input");
-		var i22 = L.DomUtil.create("input");
-		var s2  = L.DomUtil.create("select");
-		i21.id = "input-size-width";
-		i21.type = "number";
-		i21.defaultValue = 210;
-		i21.style.width = "3.5em";
-		i22.id = "input-size-height";
-		i22.type = "number";
-		i22.defaultValue = 297;
-		i22.style.width = "3.5em";
-		s2.id = "input-size-preset";
-		s2.append(new Option("free"));
+		this.inputWidth = L.DomUtil.create("input");
+		this.inputHeight = L.DomUtil.create("input");
+		this.inputPreset  = L.DomUtil.create("select");
+		this.inputWidth.id = "input-size-width";
+		this.inputWidth.type = "number";
+		this.inputWidth.defaultValue = 210;
+		this.inputWidth.style.width = "3.5em";
+		this.inputHeight.id = "input-size-height";
+		this.inputHeight.type = "number";
+		this.inputHeight.defaultValue = 297;
+		this.inputHeight.style.width = "3.5em";
+		this.inputPreset.id = "input-size-preset";
+		this.inputPreset.append(new Option("free"));
 		for (var paperSize of this.paperSizes) {
-			s2.append(new Option(paperSize.name));
+			this.inputPreset.append(new Option(paperSize.name));
         }
-		l2.innerHTML = "Paper:";
-		l2.for = i21.id + " " + i21.id;
-		p2.append(l2, i21, " mm x ", i22, " mm = ", s2);
-		container.append(p2);
+		l = L.DomUtil.create("label");
+		l.innerHTML = "Paper:";
+		l.for = this.inputWidth.id + " " + this.inputWidth.id;
+		p = L.DomUtil.create("p");
+		p.append(l, this.inputWidth, " mm x ", this.inputHeight, " mm = ", this.inputPreset);
+		container.append(p);
 
-		var p4 = L.DomUtil.create("p");
-		var l4 = L.DomUtil.create("label");
-		var i4 = L.DomUtil.create("input");
-		i4.id = "input-inset";
-		i4.type = "number";
-		i4.defaultValue = 10;
-		i4.style.width = "3em";
-		l4.innerHTML = "Margin:";
-		l4.for = i4.id;
-		p4.append(l4, i4, " mm ");
-		container.append(p4);
+		this.inputMargin = L.DomUtil.create("input");
+		this.inputMargin.id = "input-inset";
+		this.inputMargin.type = "number";
+		this.inputMargin.defaultValue = 10;
+		this.inputMargin.style.width = "3em";
+		l = L.DomUtil.create("label");
+		l.innerHTML = "Margin:";
+		l.for = this.inputMargin.id;
+		p = L.DomUtil.create("p");
+		p.append(l, this.inputMargin, " mm ");
+		container.append(p);
 
-		var b6  = L.DomUtil.create("input");
-		var a6 = L.DomUtil.create("a");
-		b6.id = "input-print";
-		b6.type = "button";
-		b6.value = "Print";
-		b6.style.display = "inline";
-		a6.id = "input-download";
-		a6.style.display = "inline";
-		a6.style.backgroundColor = "transparent";
-		a6.style.marginLeft = "0.5em";
+		this.inputPrint  = L.DomUtil.create("input");
+		this.inputDownload = L.DomUtil.create("a");
+		this.inputPrint.id = "input-print";
+		this.inputPrint.type = "button";
+		this.inputPrint.value = "Print";
+		this.inputPrint.style.display = "inline";
+		this.inputDownload.id = "input-download";
+		this.inputDownload.style.display = "inline";
+		this.inputDownload.style.backgroundColor = "transparent";
+		this.inputDownload.style.marginLeft = "0.5em";
 		
 		div.append(container);
-		div.append(b6, a6);
+		div.append(this.inputPrint, this.inputDownload);
 		div.style.borderSpacing = "0.5em";
 
-		i1.addEventListener("input", this.previewRoute.bind(this));
-		i21.addEventListener("input", this.previewRoute.bind(this));
-		i22.addEventListener("input", this.previewRoute.bind(this));
-		i21.addEventListener("input", this.onInputSizeChange);
-		i22.addEventListener("input", this.onInputSizeChange);
-		s2.addEventListener("input", function(event) {
-			if (s2.selectedIndex > 0) { // 0 is "free"
-				i21.value = this.paperSizes[s2.selectedIndex-1].width;
-				i22.value = this.paperSizes[s2.selectedIndex-1].height;
+		this.inputScale.addEventListener("input", this.previewRoute.bind(this));
+		this.inputWidth.addEventListener("input", this.previewRoute.bind(this));
+		this.inputHeight.addEventListener("input", this.previewRoute.bind(this));
+		this.inputWidth.addEventListener("input", this.onInputSizeChange);
+		this.inputHeight.addEventListener("input", this.onInputSizeChange);
+		this.inputPreset.addEventListener("input", function(event) {
+			if (this.inputPreset.selectedIndex > 0) { // 0 is "free"
+				this.inputWidth.value = this.paperSizes[this.inputPreset.selectedIndex-1].width;
+				this.inputHeight.value = this.paperSizes[this.inputPreset.selectedIndex-1].height;
 				this.previewRoute();
 			}
 		}.bind(this));
-		i4.addEventListener("input", this.previewRoute.bind(this));
-		b6.addEventListener("click", this.printRoute.bind(this));
+		this.inputMargin.addEventListener("input", this.previewRoute.bind(this));
+		this.inputPrint.addEventListener("click", this.printRoute.bind(this));
 
 		// TODO: fix that this event listener results in complaints about line not being added to map yet, wtf?
-		// map.addEventListener("zoomend", this.previewRoute.bind(this)); // just for updating DPI value TODO: remove/optimize
+		// this.map.addEventListener("zoomend", this.previewRoute.bind(this)); // just for updating DPI value TODO: remove/optimize
 
 		// this.previewRoute(); // TODO: can i do this here after saving all input fields in the class?
 
@@ -278,24 +280,24 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 	printRouteWrapper: async function(print) {
 		// update paper size preset
-		var w = document.getElementById("input-size-width").value;
-		var h = document.getElementById("input-size-height").value;
+		var w = this.inputWidth.value;
+		var h = this.inputHeight.value;
 		var i = this.paperSizes.findIndex(size => size.width == w && size.height == h);
-		document.getElementById("input-size-preset").selectedIndex = i+1;
+		this.inputPreset.selectedIndex = i+1; // if i is -1, the index becomes 0 (free)
 
-		document.getElementById("input-download").download = "";
-		document.getElementById("input-download").href = "";
-		document.getElementById("input-download").innerHTML = "";
-		document.getElementById("input-download").style.color = "black";
-		document.getElementById("input-download").style.textDecoration = "none";
-		document.getElementById("input-download").style.cursor = "default";
-		document.getElementById("input-download").style.pointerEvents = "none";
+		this.inputDownload.download = "";
+		this.inputDownload.href = "";
+		this.inputDownload.innerHTML = "";
+		this.inputDownload.style.color = "black";
+		this.inputDownload.style.textDecoration = "none";
+		this.inputDownload.style.cursor = "default";
+		this.inputDownload.style.pointerEvents = "none";
 
 		var sPaper = 1;
-		var sWorld = parseInt(document.getElementById("input-scale-world").value);
-		var wmmPaper = parseInt(document.getElementById("input-size-width").value);
-		var hmmPaper = parseInt(document.getElementById("input-size-height").value);
-		var pmmPaper = parseInt(document.getElementById("input-inset").value);
+		var sWorld = parseInt(this.inputScale.value);
+		var wmmPaper = parseInt(this.inputWidth.value);
+		var hmmPaper = parseInt(this.inputHeight.value);
+		var pmmPaper = parseInt(this.inputMargin.value);
 		var paperToWorld = sPaper / sWorld;
 		var worldToPaper = 1 / paperToWorld;
 		var wmmWorld = wmmPaper * worldToPaper;
@@ -303,18 +305,18 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var pmmWorld = pmmPaper * worldToPaper;
 
 		var routeCenter = this.line.getCenter();
-		var wpxWorld = metersToPixels(wmmWorld / 1000, routeCenter);
-		var hpxWorld = metersToPixels(hmmWorld / 1000, routeCenter);
-		var ppxWorld = metersToPixels(pmmWorld / 1000, routeCenter);
+		var wpxWorld = metersToPixels(this.map, wmmWorld / 1000, routeCenter);
+		var hpxWorld = metersToPixels(this.map, hmmWorld / 1000, routeCenter);
+		var ppxWorld = metersToPixels(this.map, pmmWorld / 1000, routeCenter);
 
 		var rects = this.getRouteRectangles(this.line.getLatLngs(), wpxWorld, hpxWorld, ppxWorld);
 
 		var dpi = Math.floor((wpxWorld / (wmmPaper / 25.4) + hpxWorld / (hmmPaper / 25.4)) / 2);
-		document.getElementById("input-download").innerHTML = `${rects.length} page${rects.length == 1 ? "" : "s"} of ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels at`;
+		this.inputDownload.innerHTML = `${rects.length} page${rects.length == 1 ? "" : "s"} of ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels at`;
 		var dpiSpan = document.createElement("span");
 		dpiSpan.innerHTML = ` ${dpi} DPI`;
 		dpiSpan.style.color = dpi >= 300 ? "green" : dpi >= 150 ? "orange" : "red";
-		document.getElementById("input-download").appendChild(dpiSpan);
+		this.inputDownload.appendChild(dpiSpan);
 
 		if (print) {
 			var printfunc = function() {
@@ -338,30 +340,30 @@ L.Control.PrintRouteControl = L.Control.extend({
 				var bytes = blob.size;
 				var megabytes = (bytes / 1e6).toFixed(1); // 1 decimal
 				var bloburl = URL.createObjectURL(blob);
-				document.getElementById("input-download").download = "route.pdf"; // suggested filename in browser
-				document.getElementById("input-download").innerHTML = `Download PDF (${megabytes} MB)`;
-				document.getElementById("input-download").href = bloburl;
-				document.getElementById("input-download").style.color = "blue";
-				document.getElementById("input-download").style.textDecoration = "underline";
-				document.getElementById("input-download").style.cursor = "pointer";
-				document.getElementById("input-download").style.pointerEvents = "auto";
-				document.getElementById("input-download").click(); // TODO: use link only as dummy?
+				this.inputDownload.download = "route.pdf"; // suggested filename in browser
+				this.inputDownload.innerHTML = `Download PDF (${megabytes} MB)`;
+				this.inputDownload.href = bloburl;
+				this.inputDownload.style.color = "blue";
+				this.inputDownload.style.textDecoration = "underline";
+				this.inputDownload.style.cursor = "pointer";
+				this.inputDownload.style.pointerEvents = "auto";
+				this.inputDownload.click(); // TODO: use link only as dummy?
 
 				this.imgDataUrls = []; // reset for next printing
 
-				map.getContainer().style.width = originalWidth;
-				map.getContainer().style.height = originalHeight;
-				map.invalidateSize();
+				this.map.getContainer().style.width = originalWidth;
+				this.map.getContainer().style.height = originalHeight;
+				this.map.invalidateSize();
 
-				map.addLayer(this.rectGroup);
+				this.map.addLayer(this.rectGroup);
 				document.removeEventListener("printcomplete", printfunc);
 			}.bind(this);
 			document.addEventListener("printcomplete", printfunc);
 
-			map.removeLayer(this.rectGroup);
+			this.map.removeLayer(this.rectGroup);
 
-			var originalWidth = map.getContainer().style.width;
-			var originalHeight = map.getContainer().style.height;
+			var originalWidth = this.map.getContainer().style.width;
+			var originalHeight = this.map.getContainer().style.height;
 
 			this.printMap(rects);
 		}
@@ -373,22 +375,22 @@ L.Control.PrintRouteControl = L.Control.extend({
 		}
 		var l = ll.slice(); // copy array (algorithm will modify it) TODO: don't modify
 		for (var i = 0; i < l.length; i++) {
-			l[i] = map.project(l[i]); // geo to pixel coords (so paper size becomes meaningful)
+			l[i] = this.map.project(l[i]); // geo to pixel coords (so paper size becomes meaningful)
 		}
 		const [rects, intersections] = coverLineWithRectangles(l, w-2*p, h-2*p);
 
 		// convert from pixel coordinates back to geographical coordinates
 		// TODO: better to not convert yet?
 		for (var i = 0; i < intersections.length; i++) {
-			intersections[i] = map.unproject(intersections[i]);
+			intersections[i] = this.map.unproject(intersections[i]);
 		}
 		this.rectGroup.clearLayers();
 		for (var i = 0; i < rects.length; i++) {
 			var smallRect = rects[i];
 			var bigRect = smallRect.pad(p);
 
-			smallRect = [map.unproject(smallRect.min), map.unproject(smallRect.max)];
-			bigRect = [map.unproject(bigRect.min), map.unproject(bigRect.max)];
+			smallRect = [this.map.unproject(smallRect.min), this.map.unproject(smallRect.max)];
+			bigRect = [this.map.unproject(bigRect.min), this.map.unproject(bigRect.max)];
 
 			L.rectangle(bigRect, {stroke: true, weight: 1, opacity: 1, color: "black", fillColor: "black", fillOpacity: 0.25}).addTo(this.rectGroup);
 			L.rectangle(smallRect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "gray"}).addTo(this.rectGroup);
@@ -417,16 +419,15 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 	setRoute: function(points) {
 		this.line.setLatLngs(points);
-		map.fitBounds(this.line.getBounds());
+		this.map.fitBounds(this.line.getBounds());
 		this.previewRoute();
 	},
 
 	printMap: function(rects) {
-		var cont = document.getElementById("map");
+		var cont = this.map.getContainer();
 
 		var printRect = function(i) {
-			var a = document.getElementById("input-download");
-			a.innerHTML = `Downloading page ${i+1} of ${rects.length} ...`;
+			this.inputDownload.innerHTML = `Downloading page ${i+1} of ${rects.length} ...`;
 
 			if (i == rects.length) {
 				document.dispatchEvent(new Event("printcomplete"));
@@ -436,15 +437,15 @@ L.Control.PrintRouteControl = L.Control.extend({
 			var r = rects[i];
 			var w = r.width;
 			var h = r.height;
-			var c = map.unproject(r.middle);
+			var c = this.map.unproject(r.middle);
 
 			cont.style.width = `${w}px`;
 			cont.style.height = `${h}px`;
-			map.invalidateSize();
-			map.setView(c, map.getZoom(), {animate: false});
-			map.invalidateSize();
+			this.map.invalidateSize();
+			this.map.setView(c, this.map.getZoom(), {animate: false});
+			this.map.invalidateSize();
 
-			leafletImage(map, function(err, canvas) {
+			leafletImage(this.map, function(err, canvas) {
 				// make canvas background white, since jpeg does not support white background
 				// https://stackoverflow.com/a/56085861/3527139
 				var ctx = canvas.getContext("2d");
