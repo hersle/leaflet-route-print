@@ -8,63 +8,64 @@ var map = L.map("map", {
 	zoomControl: false,
 });
 
-var tl1 = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
-tl1.name = "OpenStreetMap";
-var tl2 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=norgeskart_bakgrunn&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
-tl2.name = "Norgeskart (bakgrunn)";
-var tl3 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=toporaster4&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
-tl3.name = "Norgeskart (toporaster4)";
-var tl4 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
-tl4.name = "Norgeskart (topo4)";
-var tl5 = L.tileLayer('http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4graatone&zoom={z}&x={x}&y={y}', {attribution: '© <a href="https://www.kartverket.no">Kartverket</a>'});
-tl5.name = "Norgeskart (topo4 grå)";
-var tileLayers = [tl1, tl2, tl3, tl4, tl5];
-tl1.addTo(map); // default tile layer
-var currentBaseLayer = tl1;
+function createNamedTileLayer(name, tileURL, attribName, attribURL) {
+	var tl = L.tileLayer(tileURL, {attribution: `© <a href="${attribURL}">${attribName}</a>`});
+	tl.name = name;
+	return tl;
+}
 
 L.Control.MiscSelector = L.Control.extend({
 	options: {
 		position: "topleft",
 	},
+
+	initialize: function(tileLayers) {
+		this.tileLayers = tileLayers;
+		this.currentTileLayer = undefined;
+	},
+
+	setTileLayer: function(tileLayer) {
+		if (this.currentTileLayer != undefined) {
+			map.removeLayer(this.currentTileLayer);
+		}
+		this.map.addLayer(tileLayer);
+		this.currentTileLayer = tileLayer;
+	},
+
 	onAdd: function(map) {
+		this.map = map;
+		this.setTileLayer(this.tileLayers[0]);
+
 		var container = L.DomUtil.create("form", "text-input leaflet-bar");
 		container.style.backgroundColor = "white";
 		container.style.padding = "0.5em";
 		container.style.borderSpacing = "0.5em";
-		container.addEventListener("click", function(event) {
-			event.stopPropagation();
-		});
-		container.addEventListener("mousedown", function(event) {
-			event.stopPropagation();
-		});
-		container.addEventListener("dblclick", function(event) {
-			event.stopPropagation();
-		});
+		L.DomEvent.disableClickPropagation(container);
+		L.DomEvent.disableScrollPropagation(container);
 
-		var p1 = L.DomUtil.create("p");
-		var l1 = L.DomUtil.create("label");
-		var s1 = L.DomUtil.create("select");
-		s1.id = "input-layer";
-		l1.innerHTML = "Map source:";
-		for (var tl of tileLayers) {
-			s1.append(new Option(tl.name));
+		this.inputLayer = createElement("select", {id: "input-layer"});
+		var l = createElement("label", {innerHTML: "Map Source", for: "input-layer"});
+		for (var tl of this.tileLayers) {
+			this.inputLayer.append(new Option(tl.name));
 		}
-		p1.append(l1, s1);
-		container.append(p1);
+		var p = createElement("p");
+		p.append(l, this.inputLayer);
+		container.append(p);
 
-		var p2 = L.DomUtil.create("p");
-		var l2 = L.DomUtil.create("label");
-		var i2 = L.DomUtil.create("input");
-		i2.id = "input-routefile";
-		i2.type = "file";
-		i2.accept = ".gpx";
-		i2.style.width = "13em";
-		l2.innerHTML = "Route file:";
-		l2.for = i2.id;
-		p2.append(l2, i2);
-		container.append(p2);
+		this.inputLayer.addEventListener("change", function(event) {
+			var tl = this.tileLayers.find(t => t.name == this.inputLayer.value);
+			if (tl != undefined) {
+				this.setTileLayer(tl);
+			}
+		}.bind(this));
 
-		i2.addEventListener("change", async function(event) {
+		var inputRoute = createElement("input", {id: "input-routefile", type: "file", accept: ".gpx"}, {width: "13em"});
+		var l = createElement("label", {innerHTML: "Route file:", for: inputRoute.id});
+		var p = createElement("p");
+		p.append(l, inputRoute);
+		container.append(p);
+
+		inputRoute.addEventListener("change", async function(event) {
 			var file = this.files[0];
 			var stream = file.stream();
 			var reader = stream.getReader();
@@ -107,14 +108,6 @@ L.Control.MiscSelector = L.Control.extend({
 			}
 			routePrinter.setRoute(newpoints);
 		});
-		s1.addEventListener("change", function(event) {
-			var tl = tileLayers.find(t => t.name == document.getElementById("input-layer").value);
-			if (tl != undefined) {
-				map.removeLayer(currentBaseLayer);
-				map.addLayer(tl);
-				currentBaseLayer = tl;
-			}
-		});
 
 		return container;
 	},
@@ -124,6 +117,12 @@ var routePrinter = new L.Control.PrintRouteControl();
 routePrinter.addTo(map);
 routePrinter.setRoute(points);
 
-map.addControl(new L.Control.MiscSelector());
+map.addControl(new L.Control.MiscSelector([
+	createNamedTileLayer("OpenStreetMap", "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap contributors", "https://www.openstreetmap.org/copyright"),
+	createNamedTileLayer("Norgeskart (bakgrunn)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=norgeskart_bakgrunn&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
+	createNamedTileLayer("Norgeskart (toporaster4)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=toporaster4&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
+	createNamedTileLayer("Norgeskart (topo4)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
+	createNamedTileLayer("Norgeskart (topo4 grå)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4graatone&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
+]));
 L.control.zoom().addTo(map);
 L.control.scale({metric: true, imperial: false}).addTo(map);

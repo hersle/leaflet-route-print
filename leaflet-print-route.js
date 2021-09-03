@@ -127,7 +127,6 @@ class Segment {
 	}
 }
 
-// TODO: (w,h) -> r as input
 function coverLineWithRectangles(l, w, h) {
 	var rects = [];
 	var intersections = [];
@@ -138,8 +137,7 @@ function coverLineWithRectangles(l, w, h) {
 			rect = grect;
 		} else { // segment must be divided to fit in rectangle [w,h]
 			var s = new Segment(l[i-1], l[i]);
-			var vs = s.displacement;
-			var bigRect = rect.extendBounded(vs, w, h); // create rectangle as big as possible in the direction of the segment 
+			var bigRect = rect.extendBounded(s.displacement, w, h); // create rectangle as big as possible in the direction of the segment 
 			var p = bigRect.intersection(s); // find where it intersects the segment
 			console.assert(p !== undefined, "no intersection point");
 			intersections.push(p); // store intersection point for debugging
@@ -164,6 +162,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 	initialize: function() {
 		this.imgDataUrls = [];
+
 		// list paper sizes from https://en.wikipedia.org/wiki/Paper_size#Overview_of_ISO_paper_sizes
 		this.paperSizes = [];
 		for (var n = 0; n <= 6; n++) {
@@ -192,15 +191,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		var div = createElement("div", {className: "leaflet-bar"}, {backgroundColor: "white", padding: "0.5em", borderSpacing: "0.5em"});
 		var container = createElement("form", {className: "text-input"});
-		container.addEventListener("click", function(event) {
-			event.stopPropagation();
-		});
-		container.addEventListener("mousedown", function(event) {
-			event.stopPropagation();
-		});
-		container.addEventListener("dblclick", function(event) {
-			event.stopPropagation();
-		});
+		L.DomEvent.disableClickPropagation(container);
+		L.DomEvent.disableScrollPropagation(container);
 
 		this.inputScale = createElement("input", {id: "input-scale-world", type: "number", defaultValue: 100000}, {width: "6em"});
 		var l = createElement("label", {innerHTML: "Scale:", for: this.inputScale.id});
@@ -254,6 +246,17 @@ L.Control.PrintRouteControl = L.Control.extend({
 		return div;
 	},
 
+	getAttribution: function() {
+		var attrib = undefined;
+		this.map.eachLayer(function(layer) {
+			console.log(layer);
+			if (attrib == undefined && layer.getAttribution()) {
+				attrib = layer.getAttribution().replace(/<[^>]*>/g, "");
+			}
+		});
+		return attrib;
+	},
+
 	printRouteWrapper: async function(print) {
 		// update paper size preset
 		var w = this.inputWidth.value;
@@ -303,7 +306,10 @@ L.Control.PrintRouteControl = L.Control.extend({
 					pdf.text("Printed with hersle.github.io/leaflet-route-print", 0+5, 0+5, {align: "left", baseline: "top"});
 					pdf.text(`Page ${i+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
 					pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
-					pdf.text(currentBaseLayer.getAttribution().replace(/<[^>]*>/g, ""), wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
+					var attrib = this.getAttribution();
+					if (attrib) {
+						pdf.text(attrib, wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
+					}
 				}
 				// to decide download filename: https://stackoverflow.com/a/56923508/3527139
 				var blob = pdf.output("blob");
@@ -388,8 +394,6 @@ L.Control.PrintRouteControl = L.Control.extend({
 	},
 
 	printMap: function(rects) {
-		var cont = this.map.getContainer();
-
 		var printRect = function(i) {
 			this.inputDownload.innerHTML = `Downloading page ${i+1} of ${rects.length} ...`;
 
@@ -403,11 +407,10 @@ L.Control.PrintRouteControl = L.Control.extend({
 			var h = r.height;
 			var c = this.map.unproject(r.middle);
 
-			cont.style.width = `${w}px`;
-			cont.style.height = `${h}px`;
+			this.map.getContainer().style.width = `${w}px`;
+			this.map.getContainer().style.height = `${h}px`;
 			this.map.invalidateSize();
 			this.map.setView(c, this.map.getZoom(), {animate: false});
-			this.map.invalidateSize();
 
 			leafletImage(this.map, function(err, canvas) {
 				// make canvas background white, since jpeg does not support white background
