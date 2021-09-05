@@ -13,6 +13,7 @@ var map = L.map("map", {
 	preferCanvas: true,
 	zoomControl: false,
 });
+map.setView([0, 0], 2);
 
 function createNamedTileLayer(name, tileURL, attribName, attribURL) {
 	var tl = L.tileLayer(tileURL, {attribution: `© <a href="${attribURL}">${attribName}</a>`});
@@ -119,9 +120,12 @@ L.Control.MiscSelector = L.Control.extend({
 	},
 });
 
+var routeLine = L.polyline(points);
+routeLine.addTo(map);
+
 var routePrinter = new L.Control.PrintRouteControl();
 routePrinter.addTo(map);
-routePrinter.setRoute(points);
+routePrinter.setRoute(routeLine);
 
 map.addControl(new L.Control.MiscSelector([
 	createNamedTileLayer("OpenStreetMap", "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap contributors", "https://www.openstreetmap.org/copyright"),
@@ -130,5 +134,6 @@ map.addControl(new L.Control.MiscSelector([
 	createNamedTileLayer("Norgeskart (topo4)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
 	createNamedTileLayer("Norgeskart (topo4 grå)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4graatone&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
 ]));
+
 L.control.zoom().addTo(map);
 L.control.scale({metric: true, imperial: false}).addTo(map);

@@ -156,6 +156,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 	},
 
 	initialize: function() {
+		this.hasRoute = false;
+
 		this.imgDataUrls = [];
 
 		// list paper sizes from https://en.wikipedia.org/wiki/Paper_size#Overview_of_ISO_paper_sizes
@@ -176,9 +178,6 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 	onAdd: function(map) { // constructor
 		this.map = map;
-
-		this.line = L.polyline([]);
-		this.line.addTo(this.map);
 
 		// keep all rectangles in one group
 		this.rectGroup = L.layerGroup();
@@ -232,11 +231,9 @@ L.Control.PrintRouteControl = L.Control.extend({
 		}.bind(this));
 		this.inputMargin.addEventListener("input", this.previewRoute.bind(this));
 		this.inputPrint.addEventListener("click", this.printRoute.bind(this));
+		this.map.addEventListener("zoomend", this.previewRoute.bind(this));
 
-		// TODO: fix that this event listener results in complaints about line not being added to map yet, wtf?
-		// this.map.addEventListener("zoomend", this.previewRoute.bind(this)); // just for updating DPI value TODO: remove/optimize
-
-		// this.previewRoute(); // TODO: can i do this here after saving all input fields in the class?
+		this.previewRoute(); // TODO: can i do this here after saving all input fields in the class?
 
 		return div;
 	},
@@ -244,7 +241,6 @@ L.Control.PrintRouteControl = L.Control.extend({
 	getAttribution: function() {
 		var attrib = undefined;
 		this.map.eachLayer(function(layer) {
-			console.log(layer);
 			if (attrib == undefined && layer.getAttribution()) {
 				attrib = layer.getAttribution().replace(/<[^>]*>/g, "");
 			}
@@ -260,6 +256,10 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.inputPreset.selectedIndex = i+1; // if i is -1, the index becomes 0 (free)
 
 		setProperties(this.inputDownload, {download: "", href: "", innerHTML: ""}, {color: "black", textDecoration: "none", cursor: "default", pointerEvents: "none"});
+
+		if (!this.hasRoute) {
+			return;
+		}
 
 		var sPaper = 1;
 		var sWorld = parseInt(this.inputScale.value);
@@ -382,9 +382,11 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.printRouteWrapper(true);
 	},
 
-	setRoute: function(points) {
-		this.line.setLatLngs(points);
-		this.map.fitBounds(this.line.getBounds());
+	setRoute: function(line) {
+		// line should already be added to map
+		this.line = line;
+		this.map.fitBounds(this.line.getBounds(), {animate: false});
+		this.hasRoute = true;
 		this.previewRoute();
 	},
 
