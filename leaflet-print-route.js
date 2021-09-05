@@ -1,20 +1,15 @@
-function setProperties(element, properties, style) {
-	Object.assign(element, properties);
-	Object.assign(element.style, style);
-}
+import "./jsPDF/jspdf.umd.min.js";
+import "./leaflet-image/leaflet-image.js";
+import {createElement, setProperties} from "./util.js";
 
-function createElement(type, properties, style) {
-	var element = document.createElement(type);
-	setProperties(element, properties, style);
-	return element;
-}
+// TODO: make a proper leaflet plugin: https://github.com/Leaflet/Leaflet/blob/master/PLUGIN-GUIDE.md
 
 function pixelsToMeters(map, pixels, pos) {
 	// https://stackoverflow.com/questions/49122416/use-value-from-scale-bar-on-a-leaflet-map
-	point1 = map.latLngToLayerPoint(pos).add(L.point(-pixels/2, 0));
-	point2 = map.latLngToLayerPoint(pos).add(L.point(+pixels/2, 0));
-	point1 = map.layerPointToLatLng(point1);
-	point2 = map.layerPointToLatLng(point2);
+	var point1 = map.latLngToLayerPoint(pos).add(L.point(-pixels/2, 0));
+	var point2 = map.latLngToLayerPoint(pos).add(L.point(+pixels/2, 0));
+	var point1 = map.layerPointToLatLng(point1);
+	var point2 = map.layerPointToLatLng(point2);
 	return point1.distanceTo(point2);
 }
 
