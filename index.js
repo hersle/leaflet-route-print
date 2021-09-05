@@ -1,4 +1,4 @@
-import "./leaflet-print-route.js";
+import "./leaflet-route-print.js";
 import {createElement} from "./util.js";
 
 // map.getContainer().style will NOT return values set in stylesheet,
