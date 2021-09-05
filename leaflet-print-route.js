@@ -357,7 +357,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 			smallRect = [this.map.unproject(smallRect.min), this.map.unproject(smallRect.max)];
 			bigRect = [this.map.unproject(bigRect.min), this.map.unproject(bigRect.max)];
 
-			L.rectangle(bigRect, {stroke: true, weight: 1, opacity: 1, color: "black", fillColor: "black", fillOpacity: 0.25}).addTo(this.rectGroup);
+			L.rectangle(bigRect, {stroke: true, weight: 1, opacity: 1, color: "gray", fillColor: "gray", fillOpacity: 0.2}).addTo(this.rectGroup);
 			L.rectangle(smallRect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "gray"}).addTo(this.rectGroup);
 		}
 		/*
