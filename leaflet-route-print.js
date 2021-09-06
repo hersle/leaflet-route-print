@@ -217,19 +217,19 @@ L.Control.PrintRouteControl = L.Control.extend({
 		div.append(container);
 		div.append(this.inputPrint, this.inputDownload);
 
-		this.inputScale.addEventListener("input", this.previewRoute.bind(this));
-		this.inputWidth.addEventListener("input", this.previewRoute.bind(this));
-		this.inputHeight.addEventListener("input", this.previewRoute.bind(this));
-		this.inputWidth.addEventListener("input", this.onInputSizeChange);
-		this.inputHeight.addEventListener("input", this.onInputSizeChange);
-		this.inputPreset.addEventListener("input", function(event) {
+		this.inputScale.addEventListener("change", this.previewRoute.bind(this));
+		this.inputWidth.addEventListener("change", this.previewRoute.bind(this));
+		this.inputHeight.addEventListener("change", this.previewRoute.bind(this));
+		this.inputWidth.addEventListener("change", this.onInputSizeChange);
+		this.inputHeight.addEventListener("change", this.onInputSizeChange);
+		this.inputPreset.addEventListener("change", function(event) {
 			if (this.inputPreset.selectedIndex > 0) { // 0 is "free"
 				this.inputWidth.value = this.paperSizes[this.inputPreset.selectedIndex-1].width;
 				this.inputHeight.value = this.paperSizes[this.inputPreset.selectedIndex-1].height;
 				this.previewRoute();
 			}
 		}.bind(this));
-		this.inputMargin.addEventListener("input", this.previewRoute.bind(this));
+		this.inputMargin.addEventListener("change", this.previewRoute.bind(this));
 		this.inputPrint.addEventListener("click", this.printRoute.bind(this));
 		this.map.addEventListener("zoomend", this.previewRoute.bind(this));
 
