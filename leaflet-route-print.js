@@ -321,6 +321,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 				this.map.invalidateSize();
 
 				this.map.addLayer(this.rectGroup);
+
 				document.removeEventListener("printcomplete", printfunc);
 			}.bind(this);
 			document.addEventListener("printcomplete", printfunc);
@@ -395,6 +396,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 			this.inputDownload.innerHTML = `Downloading page ${i+1} of ${rects.length} ...`;
 
 			if (i == rects.length) {
+				this.inputPrint.disabled = false;
 				document.dispatchEvent(new Event("printcomplete"));
 				return;
 			}
@@ -422,6 +424,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 			}.bind(this));
 		}.bind(this);
 
+		this.inputPrint.disabled = true;
 		printRect(0);
 	}
 });
