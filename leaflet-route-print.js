@@ -160,6 +160,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		this.imgDataUrls = [];
 
+		this.setImageFormat("jpeg");
+
 		// list paper sizes from https://en.wikipedia.org/wiki/Paper_size#Overview_of_ISO_paper_sizes
 		this.paperSizes = [];
 		for (var n = 0; n <= 6; n++) {
@@ -289,7 +291,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		if (print) {
 			var printfunc = function() {
 				var orientation = wmmPaper > hmmPaper ? "landscape" : "portrait";
-				var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper], orientation: orientation});
+				var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper], orientation: orientation, compress: true});
 				pdf.setFontSize(15);
 				for (var i = 0; i < rects.length; i++) {
 					var rect = rects[i];
@@ -297,7 +299,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 						pdf.addPage([wmmPaper, hmmPaper], orientation);
 					}
 					var img = this.imgDataUrls[i];
-					pdf.addImage(img, "jpeg", 0, 0, wmmPaper, hmmPaper); // TODO: compress here, too?
+					pdf.addImage(img, this.imageFormat, 0, 0, wmmPaper, hmmPaper, undefined, "FAST");
 					pdf.text("Printed with hersle.github.io/leaflet-route-print", 0+5, 0+5, {align: "left", baseline: "top"});
 					pdf.text(`Page ${i+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
 					pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
@@ -412,19 +414,28 @@ L.Control.PrintRouteControl = L.Control.extend({
 			this.map.setView(c, this.map.getZoom(), {animate: false});
 
 			leafletImage(this.map, function(err, canvas) {
-				// make canvas background white, since jpeg does not support white background
-				// https://stackoverflow.com/a/56085861/3527139
-				var ctx = canvas.getContext("2d");
-				ctx.globalCompositeOperation = 'destination-over';
-				ctx.fillStyle = "white";
-				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				if (this.imageFormat == "jpeg") {
+					// make canvas background white, since jpeg does not support white background
+					// https://stackoverflow.com/a/56085861/3527139
+					var ctx = canvas.getContext("2d");
+					ctx.globalCompositeOperation = 'destination-over';
+					ctx.fillStyle = "white";
+					ctx.fillRect(0, 0, canvas.width, canvas.height);
+				}
 
-				this.imgDataUrls.push(canvas.toDataURL("image/jpeg")); // TODO: add options for format and quality
+				this.imgDataUrls.push(canvas.toDataURL(`image/${this.imageFormat}`));
 				printRect(i+1);
 			}.bind(this));
 		}.bind(this);
 
 		this.inputPrint.disabled = true;
 		printRect(0);
-	}
+	},
+
+	setImageFormat: function(format) {
+		if (format != "jpeg" && format != "png") {
+			throw `Invalid image format: "${format}"`;
+		}
+		this.imageFormat = format;
+	},
 });
