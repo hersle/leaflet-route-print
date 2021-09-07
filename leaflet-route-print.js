@@ -161,7 +161,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.imgDataUrls = [];
 
 		this.setImageFormat("jpeg");
-		this.setStrokeColor("red");
+		this.setStrokeColor("gray");
 		this.setFillColor("gray");
 
 		// list paper sizes from https://en.wikipedia.org/wiki/Paper_size#Overview_of_ISO_paper_sizes
