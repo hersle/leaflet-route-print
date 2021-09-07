@@ -161,6 +161,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.imgDataUrls = [];
 
 		this.setImageFormat("jpeg");
+		this.setStrokeColor("red");
+		this.setFillColor("gray");
 
 		// list paper sizes from https://en.wikipedia.org/wiki/Paper_size#Overview_of_ISO_paper_sizes
 		this.paperSizes = [];
@@ -360,8 +362,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 			smallRect = [this.map.unproject(smallRect.min), this.map.unproject(smallRect.max)];
 			bigRect = [this.map.unproject(bigRect.min), this.map.unproject(bigRect.max)];
 
-			L.rectangle(bigRect, {stroke: true, weight: 1, opacity: 1, color: "gray", fillColor: "gray", fillOpacity: 0.2}).addTo(this.rectGroup);
-			L.rectangle(smallRect, {stroke: true, weight: 1, opacity: 1.0, fill: false, color: "gray"}).addTo(this.rectGroup);
+			L.rectangle(bigRect, {stroke: true, weight: 1, opacity: this.rectStrokeOpacity, color: this.rectStrokeColor, fillColor: this.rectFillColor, fillOpacity: this.rectFillOpacity}).addTo(this.rectGroup);
+			L.rectangle(smallRect, {stroke: true, weight: 1, opacity: this.rectStrokeOpacity, color: this.rectStrokeColor, fill: false}).addTo(this.rectGroup);
 		}
 		/*
 		// show intersection points (only for debugging purposes) TODO: remove them completely
@@ -438,4 +440,14 @@ L.Control.PrintRouteControl = L.Control.extend({
 		}
 		this.imageFormat = format;
 	},
+
+	setFillColor: function(color, opacity = 0.2) {
+		this.rectFillColor = color;
+		this.rectFillOpacity = opacity;
+	},
+
+	setStrokeColor: function(color, opacity = 1.0) {
+		this.rectStrokeColor = color;
+		this.rectStrokeOpacity = opacity;
+	}
 });
