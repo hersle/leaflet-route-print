@@ -16,9 +16,11 @@ Visit [hersle.github.io/leaflet-route-print](https://hersle.github.io/leaflet-ro
 import * as L from "./leaflet.js";
 import "./leaflet-route-print.js";
 
-var map = L.map(...);
+// Initialize and configure map
+var map = L.map("map", {preferCanvas: true); // IMPORTANT: preferCanvas must be true!
 ...
 
+// Create route printing control and add it to the map
 var routePrinter = new L.Control.PrintRouteControl();
 routePrinter.addTo(map);
 
