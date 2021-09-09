@@ -51,7 +51,7 @@ L.Control.MiscSelector = L.Control.extend({
 		L.DomEvent.disableScrollPropagation(container);
 
 		this.inputLayer = createElement("select", {id: "input-layer"});
-		var l = createElement("label", {innerHTML: "Map Source", for: "input-layer"});
+		var l = createElement("label", {innerHTML: "Map source", for: "input-layer"});
 		for (var tl of this.tileLayers) {
 			this.inputLayer.append(new Option(tl.name));
 		}
@@ -138,6 +138,13 @@ map.addControl(new L.Control.MiscSelector([
 	createNamedTileLayer("Norgeskart (toporaster4)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=toporaster4&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
 	createNamedTileLayer("Norgeskart (topo4)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
 	createNamedTileLayer("Norgeskart (topo4 grå)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4graatone&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
+	createNamedTileLayer("OpenTopoMap", "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", "OpenTopoMap", "https://opentopomap.org/about"),
+	createNamedTileLayer("OpenCycleMap", "https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=ac5281c76eeb4c2c935ae98bb6da641c ", "Thunderforest", "https://www.thunderforest.com/"),
+	createNamedTileLayer("Thunderforest outdoors", "https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=ac5281c76eeb4c2c935ae98bb6da641c ", "Thunderforest", "https://www.thunderforest.com/"),
+	createNamedTileLayer("Thunderforest spinal", "https://tile.thunderforest.com/spinal-map/{z}/{x}/{y}.png?apikey=ac5281c76eeb4c2c935ae98bb6da641c ", "Thunderforest", "https://www.thunderforest.com/"),
+	createNamedTileLayer("Hike & Bike", "https://tiles.wmflabs.org/hikebike/{z}/{x}/{y}.png", "HikeBikeMap", "http://hikebikemap.org/"),
+	createNamedTileLayer("Stamen watercolor", "http://c.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg", "Stamen", "http://maps.stamen.com/"),
+	createNamedTileLayer("Soviet Military Topo", "https://y.tile.bbbike.org/cgi-bin/tapp/tilecache.py/1.0.0/topomapper_v2/{z}/{x}/{y}.jpg", "BBBike", "https://www.bbbike.org/"),
 ]));
 
 L.control.zoom().addTo(map);
