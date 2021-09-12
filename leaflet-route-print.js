@@ -195,9 +195,10 @@ L.Control.PrintRouteControl = L.Control.extend({
 		L.DomEvent.disableScrollPropagation(container);
 
 		this.inputScale = createElement("input", {id: "input-scale-world", type: "number", defaultValue: 100000}, {width: "6em"});
+		this.inputDPI = createElement("input", {id: "input-dpi", type: "number"}, {width: "4em"});
 		var l = createElement("label", {innerHTML: "Scale:", for: this.inputScale.id});
 		var p = createElement("p");
-		p.append(l, "1 : ", this.inputScale);
+		p.append(l, "1 : ", this.inputScale, " = ", this.inputDPI, " DPI");
 		container.append(p);
 
 		this.inputWidth = createElement("input", {id: "input-size-width", type: "number", defaultValue: 210}, {width: "3.5em"});
@@ -224,6 +225,10 @@ L.Control.PrintRouteControl = L.Control.extend({
 		div.append(this.inputPrint, this.inputDownload);
 
 		this.inputScale.addEventListener("change", this.previewRoute.bind(this));
+		this.inputDPI.addEventListener("change", function(event) {
+			this.inputScale.value = Math.round(this.DPIToScale(this.inputDPI.value));
+			this.previewRoute();
+		}.bind(this));
 		this.inputWidth.addEventListener("change", this.previewRoute.bind(this));
 		this.inputHeight.addEventListener("change", this.previewRoute.bind(this));
 		this.inputWidth.addEventListener("change", this.onInputSizeChange);
@@ -254,6 +259,37 @@ L.Control.PrintRouteControl = L.Control.extend({
 		return attrib;
 	},
 
+	scaleToDPI: function(sWorld) {
+		var sPaper = 1;
+		var sWorld = parseInt(this.inputScale.value);
+		var wmmPaper = parseInt(this.inputWidth.value);
+		var hmmPaper = parseInt(this.inputHeight.value);
+		var paperToWorld = sPaper / sWorld;
+		var worldToPaper = 1 / paperToWorld;
+		var wmmWorld = wmmPaper * worldToPaper;
+		var hmmWorld = hmmPaper * worldToPaper;
+
+		var routeCenter = this.line.getCenter();
+		var wpxWorld = metersToPixels(this.map, wmmWorld / 1000, routeCenter);
+		var hpxWorld = metersToPixels(this.map, hmmWorld / 1000, routeCenter);
+
+		var dpix = wpxWorld / (wmmPaper / 25.4);
+		var dpiy = hpxWorld / (hmmPaper / 25.4);
+		var dpi = (dpix + dpiy) / 2;
+		return dpi;
+	},
+
+	DPIToScale: function(dpi) {
+		var wmmPaper = parseInt(this.inputWidth.value);
+		var hmmPaper = parseInt(this.inputHeight.value);
+		var wpxWorld = dpi / 25.4 * wmmPaper;
+		var hpxWorld = (hmmPaper / wmmPaper) * wpxWorld;
+		var sWorldx = 1 * pixelsToMeters(this.map, wpxWorld, this.line.getCenter()) * 1000 / wmmPaper;
+		var sWorldy = 1 * pixelsToMeters(this.map, hpxWorld, this.line.getCenter()) * 1000 / hmmPaper;
+		var sWorld = (sWorldx + sWorldy) / 2;
+		return sWorld;
+	},
+
 	printRouteWrapper: async function(print) {
 		// update paper size preset
 		var w = this.inputWidth.value;
@@ -274,9 +310,9 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var pmmPaper = parseInt(this.inputMargin.value);
 		var paperToWorld = sPaper / sWorld;
 		var worldToPaper = 1 / paperToWorld;
-		var wmmWorld = wmmPaper * worldToPaper;
-		var hmmWorld = hmmPaper * worldToPaper;
-		var pmmWorld = pmmPaper * worldToPaper;
+		var wmmWorld = wmmPaper * (sWorld / sPaper);
+		var hmmWorld = hmmPaper * (sWorld / sPaper);
+		var pmmWorld = pmmPaper * (sWorld / sPaper);
 
 		var routeCenter = this.line.getCenter();
 		var wpxWorld = metersToPixels(this.map, wmmWorld / 1000, routeCenter);
@@ -285,12 +321,20 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		var rects = this.getRouteRectangles(this.line.getLatLngs(), wpxWorld, hpxWorld, ppxWorld);
 
+		var dpi = Math.round(this.scaleToDPI(sWorld));
+		this.inputDPI.value = dpi;
+
+		// indicate print quality with color
+		var dpi1 = 0, hue1 = 0;     // horrible print quality  (red)
+		var dpi2 = 300, hue2 = 140; // excellent print quality (green)
+		var hue = Math.floor((hue2 - hue1) * (dpi - dpi1) / (dpi2 - dpi1));
+		if (hue > hue2) {
+			hue = hue2; // it cannot get any better than "excellent"
+		}
+		this.inputDPI.style.color = `hsl(${hue}, 100%, 50%)`;
+
 		var dpi = Math.floor((wpxWorld / (wmmPaper / 25.4) + hpxWorld / (hmmPaper / 25.4)) / 2);
-		this.inputDownload.innerHTML = `${rects.length} page${rects.length == 1 ? "" : "s"} of ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels at`;
-		var dpiSpan = document.createElement("span");
-		dpiSpan.innerHTML = ` ${dpi} DPI`;
-		dpiSpan.style.color = dpi >= 300 ? "green" : dpi >= 150 ? "orange" : "red";
-		this.inputDownload.appendChild(dpiSpan);
+		this.inputDownload.innerHTML = `${rects.length} page${rects.length == 1 ? "" : "s"} of ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels`;
 
 		if (print) {
 			var printfunc = function() {
