@@ -51,7 +51,7 @@ L.Control.MiscSelector = L.Control.extend({
 		L.DomEvent.disableScrollPropagation(container);
 
 		this.inputLayer = createElement("select", {id: "input-layer"});
-		var l = createElement("label", {innerHTML: "Map source", for: "input-layer"});
+		var l = createElement("label", {innerHTML: "Map source:", for: "input-layer"});
 		for (var tl of this.tileLayers) {
 			this.inputLayer.append(new Option(tl.name));
 		}
@@ -64,6 +64,16 @@ L.Control.MiscSelector = L.Control.extend({
 			if (tl != undefined) {
 				this.setTileLayer(tl);
 			}
+		}.bind(this));
+
+		this.inputColor = createElement("input", {id: "input-color", type: "color", value: routeLine.options.color});
+		var l = createElement("label", {innerHTML: "Route color:", for: "input-color"});
+		var p = createElement("p");
+		p.append(l, this.inputColor);
+		container.append(p);
+
+		this.inputColor.addEventListener("change", function(event) {
+			routeLine.setStyle({color: this.inputColor.value});
 		}.bind(this));
 
 		var inputRoute = createElement("input", {id: "input-routefile", type: "file", accept: ".gpx"}, {width: "13em"});
