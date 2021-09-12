@@ -67,13 +67,23 @@ L.Control.MiscSelector = L.Control.extend({
 		}.bind(this));
 
 		this.inputColor = createElement("input", {id: "input-color", type: "color", value: routeLine.options.color});
-		var l = createElement("label", {innerHTML: "Route color:", for: "input-color"});
+		var l = createElement("label", {innerHTML: "Line color:", for: "input-color"});
 		var p = createElement("p");
 		p.append(l, this.inputColor);
 		container.append(p);
 
 		this.inputColor.addEventListener("change", function(event) {
 			routeLine.setStyle({color: this.inputColor.value});
+		}.bind(this));
+
+		this.inputThickness = createElement("input", {id: "input-thickness", type: "number", value: routeLine.options.weight}, {width: "3em"});
+		var l = createElement("label", {innerHTML: "Line thickness:", for: "input-thickness"});
+		var p = createElement("p");
+		p.append(l, this.inputThickness, " px");
+		container.append(p);
+
+		this.inputThickness.addEventListener("change", function(event) {
+			routeLine.setStyle({weight: this.inputThickness.value});
 		}.bind(this));
 
 		var inputRoute = createElement("input", {id: "input-routefile", type: "file", accept: ".gpx"}, {width: "13em"});
