@@ -2,6 +2,8 @@ import "./jsPDF/jspdf.umd.min.js";
 import "./leaflet-image/leaflet-image.js";
 import {createElement, setProperties} from "./util.js";
 
+const DEBUG = false;
+
 // TODO: make a proper leaflet plugin: https://github.com/Leaflet/Leaflet/blob/master/PLUGIN-GUIDE.md
 
 function pixelsToMeters(map, pixels, pos) {
@@ -87,8 +89,8 @@ class Rectangle {
 		var ss = [s1, s2, s3, s4];
 		for (var side of ss) {
 			var p = s.intersection(side);
-			// don't register intersection if it is in the beginning corner
-			if (p != undefined && p.x != s.p1.x && p.y != s.p1.y) {
+			// don't register intersection if it is in the beginning corner (TODO: why not?)
+			if (p != undefined && !(p.x == s1.p1.x && p.y == s1.p1.y)) {
 				return p; // intersect with a side
 			}
 		}
@@ -365,14 +367,12 @@ L.Control.PrintRouteControl = L.Control.extend({
 			L.rectangle(bigRect, {stroke: true, weight: 1, opacity: this.rectStrokeOpacity, color: this.rectStrokeColor, fillColor: this.rectFillColor, fillOpacity: this.rectFillOpacity}).addTo(this.rectGroup);
 			L.rectangle(smallRect, {stroke: true, weight: 1, opacity: this.rectStrokeOpacity, color: this.rectStrokeColor, fill: false}).addTo(this.rectGroup);
 		}
-		/*
 		// show intersection points (only for debugging purposes) TODO: remove them completely
-		if (showInset) {
+		if (DEBUG) {
 			for (const p of intersections) {
 				L.circleMarker(p, {radius: 5, stroke: false, color: "black", opacity: 1, fillOpacity: 1.0}).addTo(this.rectGroup);
 			}
 		}
-		*/
 
 		return rects;
 	},
