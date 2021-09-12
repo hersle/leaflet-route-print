@@ -133,6 +133,7 @@ routePrinter.addTo(map);
 routePrinter.setRoute(routeLine);
 
 map.addControl(new L.Control.MiscSelector([
+	// not every layer works due to CORS: https://gis.stackexchange.com/q/376600
 	createNamedTileLayer("OpenStreetMap", "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap contributors", "https://www.openstreetmap.org/copyright"),
 	createNamedTileLayer("Norgeskart (bakgrunn)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=norgeskart_bakgrunn&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
 	createNamedTileLayer("Norgeskart (toporaster4)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=toporaster4&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
@@ -140,11 +141,21 @@ map.addControl(new L.Control.MiscSelector([
 	createNamedTileLayer("Norgeskart (topo4 grå)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4graatone&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
 	createNamedTileLayer("OpenTopoMap", "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", "OpenTopoMap", "https://opentopomap.org/about"),
 	createNamedTileLayer("OpenCycleMap", "https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=ac5281c76eeb4c2c935ae98bb6da641c ", "Thunderforest", "https://www.thunderforest.com/"),
+	createNamedTileLayer("CyclOSM", "https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png", "CyclOSM", "https://github.com/cyclosm/cyclosm-cartocss-style/releases"),
+	createNamedTileLayer("MtbMap", "http://tile.mtbmap.cz/mtbmap_tiles/{z}/{x}/{y}.png", "OpenStreetMap contributors", "https://www.openstreetmap.org/copyright"),
 	createNamedTileLayer("Thunderforest outdoors", "https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=ac5281c76eeb4c2c935ae98bb6da641c ", "Thunderforest", "https://www.thunderforest.com/"),
+	createNamedTileLayer("Thunderforest landscape", "https://tile.thunderforest.com/landscape/{z}/{x}/{y}.png?apikey=ac5281c76eeb4c2c935ae98bb6da641c ", "Thunderforest", "https://www.thunderforest.com/"),
 	createNamedTileLayer("Thunderforest spinal", "https://tile.thunderforest.com/spinal-map/{z}/{x}/{y}.png?apikey=ac5281c76eeb4c2c935ae98bb6da641c ", "Thunderforest", "https://www.thunderforest.com/"),
+	createNamedTileLayer("Jawg terrain", "https://{s}.tile.jawg.io/jawg-terrain/{z}/{x}/{y}{r}.png?access-token=jYCJfUn1kSZ3kSYT17LPONjg3QhlQ8MCIrLRehM6kww0FZnGOgYBby3iKFWNFyTY", "Jawg Maps", "http://jawg.io"),
 	createNamedTileLayer("Hike & Bike", "https://tiles.wmflabs.org/hikebike/{z}/{x}/{y}.png", "HikeBikeMap", "http://hikebikemap.org/"),
+	createNamedTileLayer("Stadia outdoors", "https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png", "Stadia Maps", "https://stadiamaps.com"),
 	createNamedTileLayer("Stamen watercolor", "http://c.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg", "Stamen", "http://maps.stamen.com/"),
 	createNamedTileLayer("Soviet Military Topo", "https://y.tile.bbbike.org/cgi-bin/tapp/tilecache.py/1.0.0/topomapper_v2/{z}/{x}/{y}.jpg", "BBBike", "https://www.bbbike.org/"),
+	createNamedTileLayer("USGS topographic", "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}", "U.S. Geological Survey", "https://usgs.gov"),
+	// createNamedTileLayer("Geodata basis", "https://services.geodataonline.no/arcgis/rest/services/Geocache_WMAS_WGS84/GeocacheBasis/MapServer/tile/{z}/{y}/{x}", "Kartverket, Geovekst, kommuner og OSM - Geodata AS", "https://geodata.no/artikkel/betingelser-for-bruk-av-kart-og-tjenester-fra-geodata-as"),
+	// createNamedTileLayer("Geodata landskap", "https://services.geodataonline.no/arcgis/rest/services/Geocache_WMAS_WGS84/GeocacheLandskap/MapServer/tile/{z}/{y}/{x}", "Kartverket, Geovekst, kommuner og OSM - Geodata AS", "https://geodata.no/artikkel/betingelser-for-bruk-av-kart-og-tjenester-fra-geodata-as"),
+	// createNamedTileLayer("Finn", "https://maptiles.finncdn.no/tileService/1.0.3/normaphd/{z}/{x}/{y}.png", "", ""),
+	// createNamedTileLayer("Webatlas", "https://waapi.webatlas.no/maptiles/tiles/webatlas-1881-vektor/wa_grid/{z}/{x}/{y}.png?APITOKEN=9da664c7-e5b9-4dc7-a093-7ef0f90563c0", "", ""),
 ]));
 
 L.control.zoom().addTo(map);
