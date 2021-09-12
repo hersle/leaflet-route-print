@@ -150,6 +150,7 @@ map.addControl(new L.Control.MiscSelector([
 	createNamedTileLayer("Norgeskart (topo4)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
 	createNamedTileLayer("Norgeskart (topo4 grå)", "http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4graatone&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
 	createNamedTileLayer("OpenTopoMap", "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", "OpenTopoMap", "https://opentopomap.org/about"),
+	createNamedTileLayer("TopPlusOpen", "http://sgx.geodatenzentrum.de/wmts_topplus_open/tile/1.0.0/web/default/WEBMERCATOR/{z}/{y}/{x}.png", "Bundesamt für Kartographie und Geodäsie", "https://sg.geodatenzentrum.de/web_public/Datenquellen_TopPlus_Open.pdf"),
 	createNamedTileLayer("OpenCycleMap", "https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=ac5281c76eeb4c2c935ae98bb6da641c ", "Thunderforest", "https://www.thunderforest.com/"),
 	createNamedTileLayer("CyclOSM", "https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png", "CyclOSM", "https://github.com/cyclosm/cyclosm-cartocss-style/releases"),
 	createNamedTileLayer("MtbMap", "http://tile.mtbmap.cz/mtbmap_tiles/{z}/{x}/{y}.png", "OpenStreetMap contributors", "https://www.openstreetmap.org/copyright"),
