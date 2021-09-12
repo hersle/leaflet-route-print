@@ -160,6 +160,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 	initialize: function() {
 		this.hasRoute = false;
 
+		this.autoPages = true;
+
 		this.imgDataUrls = [];
 
 		this.setImageFormat("jpeg");
@@ -191,8 +193,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		var div = createElement("div", {className: "leaflet-bar"}, {backgroundColor: "white", padding: "0.5em", borderSpacing: "0.5em"});
 		var container = createElement("form", {className: "text-input"});
-		L.DomEvent.disableClickPropagation(container);
-		L.DomEvent.disableScrollPropagation(container);
+		L.DomEvent.disableClickPropagation(div);
+		L.DomEvent.disableScrollPropagation(div);
 
 		this.inputScale = createElement("input", {id: "input-scale-world", type: "number", defaultValue: 100000}, {width: "6em"});
 		this.inputDPI = createElement("input", {id: "input-dpi", type: "number"}, {width: "4em"});
@@ -220,9 +222,19 @@ L.Control.PrintRouteControl = L.Control.extend({
 		container.append(p);
 
 		this.inputPrint = createElement("input", {id: "input-print", type: "button", value: "Print"}, {display: "inline"});
+		this.inputPages = createElement("input", {id: "input-pages", type: "text"});
+		this.inputPages.addEventListener("change", function() {
+			this.autoPages = this.inputPages.value == ""; // if user clears the field, fill it automatically
+			if (this.autoPages) {
+				this.previewRoute(); // update this field
+			}
+		}.bind(this));
+		this.inputPages.addEventListener("input", function() {
+			this.inputPages.style.width = `${this.inputPages.value.length}ch`;
+		}.bind(this));
 		this.inputDownload = createElement("a", {id: "input-download"}, {display: "inline", backgroundColor: "transparent", marginLeft: "0.5em"});
 		div.append(container);
-		div.append(this.inputPrint, this.inputDownload);
+		div.append(this.inputPrint, " pages ", this.inputPages, this.inputDownload);
 
 		this.inputScale.addEventListener("change", this.previewRoute.bind(this));
 		this.inputDPI.addEventListener("change", function(event) {
@@ -324,6 +336,25 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var dpi = Math.round(this.scaleToDPI(sWorld));
 		this.inputDPI.value = dpi;
 
+		if (this.autoPages) {
+			this.inputPages.value = `1-${rects.length}`;
+		}
+		this.inputPages.style.width = `${this.inputPages.value.length}ch`;
+		// parse value
+		var pages = [];
+		var matches = this.inputPages.value.match(/\d+(-\d+)?/g);
+		for (const match of matches) {
+			var s = match.split("-");
+			var p1 = parseInt(s[0]);
+			var p2 = parseInt(s.length == 2 ? s[1] : s[0]);
+			for (var p = p1; p <= p2; p++) {
+				pages.push(p);
+			}
+		}
+		for (var i = 0; i < pages.length; i++) {
+			pages[i] -= 1; // 0-index
+		}
+
 		// indicate print quality with color
 		var dpi1 = 0, hue1 = 0;     // horrible print quality  (red)
 		var dpi2 = 300, hue2 = 140; // excellent print quality (green)
@@ -334,22 +365,22 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.inputDPI.style.color = `hsl(${hue}, 100%, 50%)`;
 
 		var dpi = Math.floor((wpxWorld / (wmmPaper / 25.4) + hpxWorld / (hmmPaper / 25.4)) / 2);
-		this.inputDownload.innerHTML = `${rects.length} page${rects.length == 1 ? "" : "s"} of ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels`;
+		this.inputDownload.innerHTML = `at ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels`;
 
 		if (print) {
 			var printfunc = function() {
 				var orientation = wmmPaper > hmmPaper ? "landscape" : "portrait";
 				var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper], orientation: orientation, compress: true});
 				pdf.setFontSize(15);
-				for (var i = 0; i < rects.length; i++) {
-					var rect = rects[i];
+				for (var i = 0; i < pages.length; i++) {
+					var rect = rects[pages[i]];
 					if (i > 0) {
 						pdf.addPage([wmmPaper, hmmPaper], orientation);
 					}
 					var img = this.imgDataUrls[i];
 					pdf.addImage(img, this.imageFormat, 0, 0, wmmPaper, hmmPaper, undefined, "FAST");
 					pdf.text("Printed with hersle.github.io/leaflet-route-print", 0+5, 0+5, {align: "left", baseline: "top"});
-					pdf.text(`Page ${i+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
+					pdf.text(`Page ${pages[i]+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
 					pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
 					var attrib = this.getAttribution();
 					if (attrib) {
@@ -381,7 +412,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 			var originalWidth = this.map.getContainer().style.width;
 			var originalHeight = this.map.getContainer().style.height;
 
-			this.printMap(rects);
+			this.printMap(rects, pages);
 		}
 	},
 
@@ -439,17 +470,18 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.previewRoute();
 	},
 
-	printMap: function(rects) {
+	printMap: function(rects, pages) {
 		var printRect = function(i) {
-			this.inputDownload.innerHTML = `Downloading page ${i+1} of ${rects.length} ...`;
+			var p = pages[i];
+			this.inputDownload.innerHTML = `Downloading page ${p+1} of ${rects.length} ...`;
 
-			if (i == rects.length) {
+			if (i == pages.length) {
 				this.inputPrint.disabled = false;
 				document.dispatchEvent(new Event("printcomplete"));
 				return;
 			}
 
-			var r = rects[i];
+			var r = rects[p];
 			var w = r.width;
 			var h = r.height;
 			var c = this.map.unproject(r.middle);
