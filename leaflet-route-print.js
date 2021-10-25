@@ -191,10 +191,12 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.rectGroup = L.layerGroup();
 		this.rectGroup.addTo(this.map);
 
-		var div = createElement("div", {className: "leaflet-bar"}, {backgroundColor: "white", padding: "0.5em", borderSpacing: "0.5em"});
+		var divWrapper = createElement("div", {className: "leaflet-bar leaflet-control"}, {backgroundColor: "white"});
+		L.DomEvent.disableClickPropagation(divWrapper);
+		L.DomEvent.disableScrollPropagation(divWrapper);
+
+		var divControls = createElement("div", {}, {borderSpacing: "5px"});
 		var container = createElement("form", {className: "text-input"});
-		L.DomEvent.disableClickPropagation(div);
-		L.DomEvent.disableScrollPropagation(div);
 
 		this.inputScale = createElement("input", {id: "input-scale-world", type: "number", defaultValue: 100000}, {width: "6em"});
 		this.inputDPI = createElement("input", {id: "input-dpi", type: "number"}, {width: "4em"});
@@ -233,8 +235,35 @@ L.Control.PrintRouteControl = L.Control.extend({
 			this.inputPages.style.width = `${this.inputPages.value.length}ch`;
 		}.bind(this));
 		this.inputDownload = createElement("a", {id: "input-download"}, {display: "inline", backgroundColor: "transparent", marginLeft: "0.5em"});
-		div.append(container);
-		div.append(this.inputPrint, " pages ", this.inputPages, this.inputDownload);
+		l = createElement("label", {}, {fontWeight: "normal"});
+		l.append(" pages ", this.inputPages, this.inputDownload);
+		p = createElement("p");
+		p.append(this.inputPrint, l);
+		container.append(p);
+		// TODO: remove extra ugly padding after print button. seems to happen because "Print" is a button.
+
+		divControls.append(container);
+
+		// TODO: improve organization of wrapper, header, button, etc.
+
+		var divButton = createElement("div", {}, {display: "flex", justifyContent: "space-between", borderBottom: "1px solid black"}); // float left and right using https://stackoverflow.com/a/10277235
+
+		var header = createElement("p", {innerHTML: "<b>Print route settings</b>"}, {margin: "0", fontSize: "13px", padding: divControls.style.borderSpacing}); // padding should be same as borderSpacing in divControls
+		var button = createElement("a", {innerHTML: "✖", href: "#"}, {width: "30px", height: "30px", lineHeight: "30px", fontSize: "22px"});
+		button.addEventListener("click", function() {
+			if (divControls.style.display == "none") {
+				divControls.style.display = "block";
+				header.style.display = "inline-block";
+				button.innerHTML = "✖";
+			} else {
+				divControls.style.display = "none";
+				header.style.display = "none";
+				button.innerHTML = "P";
+			}
+		});
+		divButton.append(header, button);
+
+		divWrapper.append(divButton, divControls);
 
 		this.inputScale.addEventListener("change", this.previewRoute.bind(this));
 		this.inputDPI.addEventListener("change", function(event) {
@@ -258,7 +287,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		this.previewRoute(); // TODO: can i do this here after saving all input fields in the class?
 
-		return div;
+		return divWrapper;
 	},
 
 	getAttribution: function() {
