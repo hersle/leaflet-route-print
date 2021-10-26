@@ -224,6 +224,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		container.append(p);
 
 		this.inputPrint = createElement("input", {id: "input-print", type: "button", value: "Print"}, {display: "inline"});
+		this.printStatus = createElement("span", {});
 		this.inputPages = createElement("input", {id: "input-pages", type: "text"});
 		this.inputPages.addEventListener("change", function() {
 			this.autoPages = this.inputPages.value == ""; // if user clears the field, fill it automatically
@@ -234,9 +235,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.inputPages.addEventListener("input", function() {
 			this.inputPages.style.width = `${this.inputPages.value.length}ch`;
 		}.bind(this));
-		this.inputDownload = createElement("a", {id: "input-download"}, {display: "inline", backgroundColor: "transparent", marginLeft: "0.5em"});
 		l = createElement("label", {}, {fontWeight: "normal"});
-		l.append(" pages ", this.inputPages, this.inputDownload);
+		l.append(" pages ", this.inputPages, this.printStatus);
 		p = createElement("p");
 		p.append(this.inputPrint, l);
 		container.append(p);
@@ -290,6 +290,10 @@ L.Control.PrintRouteControl = L.Control.extend({
 		return divWrapper;
 	},
 
+	setPrintStatus: function(status) {
+		this.printStatus.innerHTML = status == undefined ? "" : " " + status;
+	},
+
 	getAttribution: function() {
 		var attrib = undefined;
 		this.map.eachLayer(function(layer) {
@@ -338,7 +342,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var i = this.paperSizes.findIndex(size => size.width == w && size.height == h);
 		this.inputPreset.selectedIndex = i+1; // if i is -1, the index becomes 0 (free)
 
-		setProperties(this.inputDownload, {download: "", href: "", innerHTML: ""}, {color: "black", textDecoration: "none", cursor: "default", pointerEvents: "none"});
+		this.setPrintStatus();
 
 		if (!this.hasRoute) {
 			return;
@@ -394,7 +398,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.inputDPI.style.color = `hsl(${hue}, 100%, 50%)`;
 
 		var dpi = Math.floor((wpxWorld / (wmmPaper / 25.4) + hpxWorld / (hmmPaper / 25.4)) / 2);
-		this.inputDownload.innerHTML = `at ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels`;
+		this.setPrintStatus(`at ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels`);
 
 		if (print) {
 			var printfunc = function() {
@@ -417,12 +421,9 @@ L.Control.PrintRouteControl = L.Control.extend({
 					}
 				}
 				// to decide download filename: https://stackoverflow.com/a/56923508/3527139
-				var blob = pdf.output("blob");
-				var bytes = blob.size;
-				var megabytes = (bytes / 1e6).toFixed(1); // 1 decimal
-				var bloburl = URL.createObjectURL(blob);
-				setProperties(this.inputDownload, {download: "route.pdf", innerHTML: `Download PDF (${megabytes} MB)`, href: bloburl}, {color: "blue", textDecoration: "underline", cursor: "pointer", pointerEvents: "auto"});
-				this.inputDownload.click(); // TODO: use link only as dummy?
+				pdf.autoPrint();
+				var blob = pdf.output("pdfobjectnewwindow", {filename: "route.pdf"});
+				this.setPrintStatus();
 
 				this.imgDataUrls = []; // reset for next printing
 
@@ -502,7 +503,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 	printMap: function(rects, pages) {
 		var printRect = function(i) {
 			var p = pages[i];
-			this.inputDownload.innerHTML = `Downloading page ${p+1} of ${rects.length} ...`;
+			this.setPrintStatus(`Downloading page ${p+1} of ${rects.length} ...`);
 
 			if (i == pages.length) {
 				this.inputPrint.disabled = false;
