@@ -43,12 +43,9 @@ L.Control.MiscSelector = L.Control.extend({
 		this.map = map;
 		this.setTileLayer(this.tileLayers[0]);
 
-		var container = L.DomUtil.create("form", "text-input leaflet-bar");
-		container.style.backgroundColor = "white";
-		container.style.padding = "0.5em";
-		container.style.borderSpacing = "0.5em";
-		L.DomEvent.disableClickPropagation(container);
-		L.DomEvent.disableScrollPropagation(container);
+		var divControls = L.DomUtil.create("form", "text-input");
+		divControls.style.backgroundColor = "white";
+		divControls.style.borderSpacing = "5px";
 
 		this.inputLayer = createElement("select", {id: "input-layer"});
 		var l = createElement("label", {innerHTML: "Map source:", for: "input-layer"});
@@ -57,7 +54,7 @@ L.Control.MiscSelector = L.Control.extend({
 		}
 		var p = createElement("p");
 		p.append(l, this.inputLayer);
-		container.append(p);
+		divControls.append(p);
 
 		this.inputLayer.addEventListener("change", function(event) {
 			var tl = this.tileLayers.find(t => t.name == this.inputLayer.value);
@@ -70,7 +67,7 @@ L.Control.MiscSelector = L.Control.extend({
 		var l = createElement("label", {innerHTML: "Line color:", for: "input-color"});
 		var p = createElement("p");
 		p.append(l, this.inputColor);
-		container.append(p);
+		divControls.append(p);
 
 		this.inputColor.addEventListener("change", function(event) {
 			routeLine.setStyle({color: this.inputColor.value});
@@ -80,7 +77,7 @@ L.Control.MiscSelector = L.Control.extend({
 		var l = createElement("label", {innerHTML: "Line thickness:", for: "input-thickness"});
 		var p = createElement("p");
 		p.append(l, this.inputThickness, " px");
-		container.append(p);
+		divControls.append(p);
 
 		this.inputThickness.addEventListener("change", function(event) {
 			routeLine.setStyle({weight: this.inputThickness.value});
@@ -90,7 +87,7 @@ L.Control.MiscSelector = L.Control.extend({
 		var l = createElement("label", {innerHTML: "Route file:", for: inputRoute.id});
 		var p = createElement("p");
 		p.append(l, inputRoute);
-		container.append(p);
+		divControls.append(p);
 
 		inputRoute.addEventListener("change", async function(event) {
 			var file = this.files[0];
@@ -141,7 +138,29 @@ L.Control.MiscSelector = L.Control.extend({
 			routePrinter.setRoute(routeLine);
 		});
 
-		return container;
+		var divWrapper = createElement("div", {className: "leaflet-bar leaflet-control"}, {backgroundColor: "white"});
+		var divHeader = createElement("div", {}, {display: "flex", justifyContent: "space-between", borderBottom: "1px solid black"});
+
+		var header = createElement("p", {innerHTML: "<b>Miscellaneous ettings</b>"}, {margin: "0", fontSize: "13px", padding: divControls.style.borderSpacing});
+		var button = createElement("a", {innerHTML: "✖", href: "#"}, {width: "30px", height: "30px", lineHeight: "30px", fontSize: "22px"});
+		button.addEventListener("click", function() {
+			if (divControls.style.display == "none") {
+				divControls.style.display = "block";
+				header.style.display = "block";
+				button.innerHTML = "✖";
+			} else {
+				divControls.style.display = "none";
+				header.style.display = "none";
+				button.innerHTML = "M";
+			}
+		});
+		divHeader.append(header, button);
+
+		divWrapper.append(divHeader, divControls);
+		L.DomEvent.disableClickPropagation(divWrapper);
+		L.DomEvent.disableScrollPropagation(divWrapper);
+
+		return divWrapper;
 	},
 });
 

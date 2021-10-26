@@ -253,7 +253,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		button.addEventListener("click", function() {
 			if (divControls.style.display == "none") {
 				divControls.style.display = "block";
-				header.style.display = "inline-block";
+				header.style.display = "block";
 				button.innerHTML = "✖";
 			} else {
 				divControls.style.display = "none";
