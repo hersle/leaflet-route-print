@@ -201,6 +201,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.inputScale = createElement("input", {id: "input-scale-world", type: "number", defaultValue: 100000}, {width: "6em"});
 		this.inputDPI = createElement("input", {id: "input-dpi", type: "number"}, {width: "4em"});
 		var l = createElement("label", {innerHTML: "Scale:", for: this.inputScale.id});
+		l.title = "Paper-to-World scale and resolution of the printed raster map in Dots Per Inch (DPI). The color of the DPI value indicates the expected print quality, from worst (0, red) to best (300, green). Hover on the labels below to see more help information.";
+		l.style.cursor = "help";
 		var p = createElement("p");
 		p.append(l, "1 : ", this.inputScale, " = ", this.inputDPI, " DPI");
 		container.append(p);
@@ -213,19 +215,25 @@ L.Control.PrintRouteControl = L.Control.extend({
 			this.inputPreset.append(new Option(paperSize.name));
         }
 		l = createElement("label", {innerHTML: "Paper:", for: this.inputWidth.id + " " + this.inputHeight.id});
+		l.title = "Physical paper size. Enter manually or select a preset (P = Portrait, L = Landscape).";
+		l.style.cursor = "help";
 		p = createElement("p");
 		p.append(l, this.inputWidth, " mm x ", this.inputHeight, " mm = ", this.inputPreset);
 		container.append(p);
 
 		this.inputMargin = createElement("input", {id: "input-inset", type: "number", defaultValue: 10}, {width: "3em"});
 		l = createElement("label", {innerHTML: "Margin:", for: this.inputMargin.id});
+		l.title = "Enter a margin to require the route to be contained in a sequence of rectangles that are smaller than the paper. Useful for countering printer bleed, ensuring an overlap to make the route easier to follow across pages, and to ensure a minimum of contextual map area around the route.";
+		l.style.cursor = "help";
 		p = createElement("p");
 		p.append(l, this.inputMargin, " mm ");
 		container.append(p);
 
 		this.inputPrint = createElement("input", {id: "input-print", type: "button", value: "Print"}, {display: "inline"});
+		this.inputPrint.title = "Print the map as a PDF file and automatically open it when complete.";
 		this.printStatus = createElement("span", {});
 		this.inputPages = createElement("input", {id: "input-pages", type: "text"});
+		this.inputPages.title = "Comma-separated list of (ranges of) pages to print. For example, \"1, 3-5, 7\" prints page 1, 3, 4, 5 and 7. Clear to reset to all pages.";
 		this.inputPages.addEventListener("change", function() {
 			this.autoPages = this.inputPages.value == ""; // if user clears the field, fill it automatically
 			if (this.autoPages) {
@@ -249,19 +257,24 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var divButton = createElement("div", {}, {display: "flex", justifyContent: "space-between", borderBottom: "1px solid black"}); // float left and right using https://stackoverflow.com/a/10277235
 
 		var header = createElement("p", {innerHTML: "<b>Print route settings</b>"}, {margin: "0", fontSize: "13px", padding: divControls.style.borderSpacing}); // padding should be same as borderSpacing in divControls
-		var button = createElement("a", {innerHTML: "✖", href: "#"}, {width: "30px", height: "30px", lineHeight: "30px", fontSize: "22px"});
+		var button = createElement("a", {innerHTML: "✖", href: "#"}, {display: "inline-block", width: "30px", height: "30px", lineHeight: "30px", fontSize: "22px"});
+		var help = createElement("a", {innerHTML: "?", title: "You get what you see! Zoom the map to your preferred level of detail, modify these settings and hit Print. The color of the DPI value indicates the print quality.", href: "#"}, {display: "inline-block", width: "30px", height: "30px", lineHeight: "30px", fontSize: "22px", cursor: "help"});
 		button.addEventListener("click", function() {
 			if (divControls.style.display == "none") {
 				divControls.style.display = "block";
 				header.style.display = "block";
 				button.innerHTML = "✖";
+				help.style.display = "inline-block";
 			} else {
 				divControls.style.display = "none";
 				header.style.display = "none";
 				button.innerHTML = "P";
+				help.style.display = "none";
 			}
 		});
-		divButton.append(header, button);
+		var buttonWrapper = createElement("div", {});
+		buttonWrapper.append(help, button);
+		divButton.append(header, buttonWrapper);
 
 		divWrapper.append(divButton, divControls);
 
