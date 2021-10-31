@@ -141,7 +141,7 @@ L.Control.MiscSelector = L.Control.extend({
 		var divWrapper = createElement("div", {className: "leaflet-bar leaflet-control"}, {backgroundColor: "white"});
 		var divHeader = createElement("div", {}, {display: "flex", justifyContent: "space-between", borderBottom: "1px solid black"});
 
-		var header = createElement("p", {innerHTML: "<b>Miscellaneous ettings</b>"}, {margin: "0", fontSize: "13px", padding: divControls.style.borderSpacing});
+		var header = createElement("p", {innerHTML: "<b>Miscellaneous settings</b>"}, {margin: "0", fontSize: "13px", padding: divControls.style.borderSpacing});
 		var button = createElement("a", {innerHTML: "✖", href: "#"}, {width: "30px", height: "30px", lineHeight: "30px", fontSize: "22px"});
 		button.addEventListener("click", function() {
 			if (divControls.style.display == "none") {

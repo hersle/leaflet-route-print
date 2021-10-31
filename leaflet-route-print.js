@@ -248,7 +248,9 @@ L.Control.PrintRouteControl = L.Control.extend({
 		p = createElement("p");
 		p.append(this.inputPrint, l);
 		container.append(p);
-		// TODO: remove extra ugly padding after print button. seems to happen because "Print" is a button.
+
+		this.downloadLink = createElement("a", {"download": "route.pdf"}, {"display": "none"});
+		container.append(this.downloadLink);
 
 		divControls.append(container);
 
@@ -434,8 +436,9 @@ L.Control.PrintRouteControl = L.Control.extend({
 					}
 				}
 				// to decide download filename: https://stackoverflow.com/a/56923508/3527139
-				pdf.autoPrint();
-				var blob = pdf.output("pdfobjectnewwindow", {filename: "route.pdf"});
+				var blob = pdf.output("blob", {filename: "route.pdf"});
+				this.downloadLink.href = URL.createObjectURL(blob);
+				this.downloadLink.click(); // download
 				this.setPrintStatus();
 
 				this.imgDataUrls = []; // reset for next printing
