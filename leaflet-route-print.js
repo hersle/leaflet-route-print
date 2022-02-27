@@ -378,6 +378,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 		// update paper size preset
 		var w = this.inputWidth.value;
 		var h = this.inputHeight.value;
+		var i = this.paperSizes.findIndex(size => size.width == w && size.height == h);
+		this.inputPreset.selectedIndex = i+1; // if i is -1, the index becomes 0 (free)
 		var o = this.inputOrientation.value;
 		if (o == "Landscape") { // swap width <-> height
 			var wtmp = w;
@@ -385,8 +387,6 @@ L.Control.PrintRouteControl = L.Control.extend({
 			h = wtmp;
 		}
 		var mix = o == "Mix efficiently";
-		var i = this.paperSizes.findIndex(size => size.width == w && size.height == h);
-		this.inputPreset.selectedIndex = i+1; // if i is -1, the index becomes 0 (free)
 
 		this.setPrintStatus();
 
