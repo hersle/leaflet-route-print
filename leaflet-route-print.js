@@ -52,25 +52,19 @@ class Rectangle {
 		return new Rectangle(min, max);
 	}
 
-	extendBounded(d, w, h) {
-		var xmin, ymin, xmax, ymax;
-
-		if (d.x > 0) {
-			xmin = this.xmin;
-			xmax = this.xmax + w - this.width;
-		} else {
-			xmin = this.xmin - w + this.width;
-			xmax = this.xmax;
+	extendBounded(s, w, h) {
+		var d = s.displacement;
+		var maxRect;
+		if (d.x > 0 && d.y > 0) { // north-east quadrant
+			maxRect = new Rectangle(L.point(this.xmin, this.ymin), L.point(this.xmin+w, this.ymin+h));
+		} else if (d.x < 0 && d.y > 0) { // north-west quadrant
+			maxRect = new Rectangle(L.point(this.xmax-w, this.ymin), L.point(this.xmax, this.ymin+h));
+		} else if (d.x < 0 && d.y < 0) { // south-west quadrant
+			maxRect = new Rectangle(L.point(this.xmax-w, this.ymax-h), L.point(this.xmax, this.ymax));
+		} else if (d.x > 0 && d.y < 0) { // south-east quadrant
+			maxRect = new Rectangle(L.point(this.xmin, this.ymax-h), L.point(this.xmin+w, this.ymax));
 		}
-		if (d.y > 0) {
-			ymin = this.ymin;
-			ymax = this.ymax + h - this.height;
-		} else {
-			ymin = this.ymin - h + this.height;
-			ymax = this.ymax;
-		}
-
-		return new Rectangle(L.point(xmin, ymin), L.point(xmax, ymax));
+		return this.extend(maxRect.intersection(s));
 	}
 
 	pad(p) {
@@ -141,8 +135,7 @@ function coverLineWithRectangle(l, w, h, i1) {
 		if (grect.isSmallerThan(w, h)) { // whole segment fits in rectangle [w,h]
 			rect = grect;
 		} else { // segment must be divided to fit in rectangle [w,h]
-			// TODO: extendBounded() should be fixed so rectangles are always centered on route
-			rect = rect.extendBounded(segment.displacement, w, h); // create rectangle as big as possible in the direction of the segment 
+			rect = rect.extendBounded(segment, w, h); // create rectangle as big as possible in the direction of the segment
 			intersection = rect.intersection(segment); // find where it intersects the segment
 			segment = new Segment(l[i-1], intersection);
 		}
@@ -395,7 +388,6 @@ L.Control.PrintRouteControl = L.Control.extend({
 			h = wtmp;
 		}
 		var mix = o == "Mix efficiently";
-		console.log(mix);
 		var i = this.paperSizes.findIndex(size => size.width == w && size.height == h);
 		this.inputPreset.selectedIndex = i+1; // if i is -1, the index becomes 0 (free)
 
