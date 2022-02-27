@@ -137,7 +137,9 @@ function coverLineWithRectangle(l, w, h, i1) {
 		} else { // segment must be divided to fit in rectangle [w,h]
 			rect = rect.extendBounded(segment, w, h); // create rectangle as big as possible in the direction of the segment
 			intersection = rect.intersection(segment); // find where it intersects the segment
-			console.assert(intersection != undefined, "could not find segment-rectangle intersection"); // TODO: fix intersection test fail for small paper sizes (A5, A6)
+			if (intersection == undefined) {
+				intersection = l[i]; // intersection test can fail (due to numerical issues) - in this case the segment endpoint l[i] is very close
+			}
 			segment = new Segment(l[i-1], intersection);
 		}
 		dist += segment.length();
