@@ -451,22 +451,35 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		if (print) {
 			var printfunc = function() {
-				var orientation = wmmPaper > hmmPaper ? "landscape" : "portrait";
-				var pdf = new jspdf.jsPDF({format: [wmmPaper, hmmPaper], orientation: orientation, compress: true});
-				pdf.setFontSize(15);
+				var pdf;
 				for (var i = 0; i < pages.length; i++) {
 					var rect = rects[pages[i]];
-					if (i > 0) {
-						pdf.addPage([wmmPaper, hmmPaper], orientation);
+					var w, h;
+					// recognize mixed portrait/landscape rectangles
+					if ((rect.width/rect.height-wmmPaper/hmmPaper)**2 < (rect.height/rect.width-wmmPaper/hmmPaper)**2) {
+						w = wmmPaper;
+						h = hmmPaper;
+					} else {
+						w = hmmPaper;
+						h = wmmPaper;
+					}
+					var orientation = w > h ? "landscape" : "portrait";
+					if (i == 0) {
+						// adding first page is the same as creating the PDF
+						pdf = new jspdf.jsPDF({format: [w, h], orientation: orientation, compress: true});
+						pdf.setFontSize(15);
+					}  else {
+						// add more pages
+						pdf.addPage([w, h], orientation);
 					}
 					var img = this.imgDataUrls[i];
-					pdf.addImage(img, this.imageFormat, 0, 0, wmmPaper, hmmPaper, undefined, "FAST");
+					pdf.addImage(img, this.imageFormat, 0, 0, w, h, undefined, "FAST");
 					pdf.text("Printed with hersle.github.io/leaflet-route-print", 0+5, 0+5, {align: "left", baseline: "top"});
-					pdf.text(`Page ${pages[i]+1} of ${rects.length}`, wmmPaper-5, 0+5, {align: "right", baseline: "top"});
-					pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, hmmPaper-5, {align: "left", baseline: "bottom"});
+					pdf.text(`Page ${pages[i]+1} of ${rects.length}`, w-5, 0+5, {align: "right", baseline: "top"});
+					pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, h-5, {align: "left", baseline: "bottom"});
 					var attrib = this.getAttribution();
 					if (attrib) {
-						pdf.text(attrib, wmmPaper-5, hmmPaper-5, {align: "right", baseline: "bottom"});
+						pdf.text(attrib, w-5, h-5, {align: "right", baseline: "bottom"});
 					}
 				}
 				// to decide download filename: https://stackoverflow.com/a/56923508/3527139
