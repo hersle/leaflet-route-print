@@ -218,12 +218,12 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var container = createElement("form", {className: "text-input"});
 
 		this.inputScale = createElement("input", {id: "input-scale-world", type: "number", defaultValue: 100000}, {width: "6em"});
-		this.inputDPI = createElement("input", {id: "input-dpi", type: "number"}, {width: "4em"});
+		this.inputDPI = createElement("span", {id: "input-dpi"}, {fontWeight: "bold"});
 		var l = createElement("label", {innerHTML: "Scale:", for: this.inputScale.id});
 		l.title = "Paper-to-World scale and resolution of the printed raster map in Dots Per Inch (DPI). The color of the DPI value indicates the expected print quality, from worst (0, red) to best (300, green). Hover on the labels below to see more help information.";
 		l.style.cursor = "help";
 		var p = createElement("p");
-		p.append(l, "1 : ", this.inputScale, " = ", this.inputDPI, " DPI");
+		p.append(l, "1 : ", this.inputScale, " (", this.inputDPI, ")");
 		container.append(p);
 
 		this.inputWidth = createElement("input", {id: "input-size-width", type: "number", defaultValue: 210}, {width: "3.5em"});
@@ -309,10 +309,6 @@ L.Control.PrintRouteControl = L.Control.extend({
 		divWrapper.append(divButton, divControls);
 
 		this.inputScale.addEventListener("change", this.previewRoute.bind(this));
-		this.inputDPI.addEventListener("change", function(event) {
-			this.inputScale.value = Math.round(this.DPIToScale(this.inputDPI.value));
-			this.previewRoute();
-		}.bind(this));
 		this.inputWidth.addEventListener("change", this.previewRoute.bind(this));
 		this.inputHeight.addEventListener("change", this.previewRoute.bind(this));
 		this.inputWidth.addEventListener("change", this.onInputSizeChange);
@@ -418,7 +414,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var rects = this.getRouteRectangles(this.line.getLatLngs(), wpxWorld, hpxWorld, ppxWorld, mix);
 
 		var dpi = Math.round(this.scaleToDPI(sWorld));
-		this.inputDPI.value = dpi;
+		this.inputDPI.innerHTML = `${dpi} DPI`;
 
 		if (this.autoPages) {
 			this.inputPages.value = `1-${rects.length}`;
