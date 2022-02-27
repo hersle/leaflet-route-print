@@ -1,6 +1,6 @@
 import "./jsPDF/jspdf.umd.min.js";
 import "./leaflet-image/leaflet-image.js";
-import {createElement, setProperties} from "./util.js";
+import {createElement, setProperties} from "./util.js";
 
 const DEBUG = false;
 
@@ -122,32 +122,56 @@ class Segment {
 			return undefined
 		}
 	}
+
+	length() {
+		var dx = this.p2.x - this.p1.x;
+		var dy = this.p2.y - this.p1.y;
+		return (dx**2 + dy**2)**0.5;
+	}
 }
 
-function coverLineWithRectangles(l, w, h) {
-	var rects = [];
-	var intersections = [];
-	var rect = new Rectangle(l[0], l[0]);
-	for (var i = 1; i < l.length; i++) {
+function coverLineWithRectangle(l, w, h, i1) {
+	var rect = new Rectangle(l[i1], l[i1]);
+	var segment;
+	var intersection = undefined;
+	var dist = 0;
+	for (var i = i1+1; i < l.length && intersection == undefined; i++) {
 		var grect = rect.extend(l[i]);
+		segment = new Segment(l[i-1], l[i]);
 		if (grect.isSmallerThan(w, h)) { // whole segment fits in rectangle [w,h]
 			rect = grect;
 		} else { // segment must be divided to fit in rectangle [w,h]
-			var s = new Segment(l[i-1], l[i]);
-			var bigRect = rect.extendBounded(s.displacement, w, h); // create rectangle as big as possible in the direction of the segment 
-			var p = bigRect.intersection(s); // find where it intersects the segment
-			console.assert(p !== undefined, "no intersection point");
-			intersections.push(p); // store intersection point for debugging
-			l.splice(i, 0, p); // divide the segment TODO: don't modify input array
-			rect = rect.extend(p); // grow the cover rectangle to accomodate the intersection point
-			rect = (new Rectangle(L.point(0, 0), L.point(w, h))).center(rect.middle); // grow rectangle to full [w,h] size and center it on the area it must cover
-			rects.push(rect); // add the complete rectangle
-			rect = new Rectangle(p, p); // reset the cover rectangle for new segments
+			// TODO: extendBounded() should be fixed so rectangles are always centered on route
+			rect = rect.extendBounded(segment.displacement, w, h); // create rectangle as big as possible in the direction of the segment 
+			intersection = rect.intersection(segment); // find where it intersects the segment
+			segment = new Segment(l[i-1], intersection);
 		}
+		dist += segment.length();
 	}
-	// also print the last segments in a [w,h] rectangle
 	rect = (new Rectangle(L.point(0, 0), L.point(w, h))).center(rect.middle);
-	rects.push(rect);
+	return [rect, i, intersection, dist];
+}
+
+function coverLineWithRectangles(l, w, h, mix) {
+	var rects = [];
+	var intersections = [];
+	var i1 = 0;
+	while (true) {
+		var [rect, i2, intersection, dist] = coverLineWithRectangle(l, w, h, i1);
+		if (mix) {
+			var [recthw, i2hw, intersectionhw, disthw] = coverLineWithRectangle(l, h, w, i1);
+			if (disthw > dist) {
+				[rect, i2, intersection, dist] = [recthw, i2hw, intersectionhw, disthw];
+			}
+		}
+		rects.push(rect);
+		if (intersection == undefined) {
+			break;
+		}
+		intersections.push(intersection);
+		l.splice(i2, 0, intersection); // divide the segment TODO: don't modify input array
+		i1 = i2;
+	}
 	return [rects, intersections];
 }
 
@@ -219,6 +243,15 @@ L.Control.PrintRouteControl = L.Control.extend({
 		l.style.cursor = "help";
 		p = createElement("p");
 		p.append(l, this.inputWidth, " mm x ", this.inputHeight, " mm = ", this.inputPreset);
+		container.append(p);
+
+		this.inputOrientation = createElement("select", {id: "input-orientation"});
+		this.inputOrientation.append(new Option("Portrait"));
+		this.inputOrientation.append(new Option("Landscape"));
+		this.inputOrientation.append(new Option("Mix efficiently"));
+		l = createElement("label", {innerHTML: "Orientation:", for: this.inputOrientation.id});
+		p = createElement("p");
+		p.append(l, this.inputOrientation);
 		container.append(p);
 
 		this.inputMargin = createElement("input", {id: "input-inset", type: "number", defaultValue: 10}, {width: "3em"});
@@ -296,6 +329,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 				this.previewRoute();
 			}
 		}.bind(this));
+		this.inputOrientation.addEventListener("change", this.previewRoute.bind(this));
 		this.inputMargin.addEventListener("change", this.previewRoute.bind(this));
 		this.inputPrint.addEventListener("click", this.printRoute.bind(this));
 		this.map.addEventListener("zoomend", this.previewRoute.bind(this));
@@ -354,6 +388,14 @@ L.Control.PrintRouteControl = L.Control.extend({
 		// update paper size preset
 		var w = this.inputWidth.value;
 		var h = this.inputHeight.value;
+		var o = this.inputOrientation.value;
+		if (o == "Landscape") { // swap width <-> height
+			var wtmp = w;
+			w = h;
+			h = wtmp;
+		}
+		var mix = o == "Mix efficiently";
+		console.log(mix);
 		var i = this.paperSizes.findIndex(size => size.width == w && size.height == h);
 		this.inputPreset.selectedIndex = i+1; // if i is -1, the index becomes 0 (free)
 
@@ -365,8 +407,8 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		var sPaper = 1;
 		var sWorld = parseInt(this.inputScale.value);
-		var wmmPaper = parseInt(this.inputWidth.value);
-		var hmmPaper = parseInt(this.inputHeight.value);
+		var wmmPaper = parseInt(w);
+		var hmmPaper = parseInt(h);
 		var pmmPaper = parseInt(this.inputMargin.value);
 		var paperToWorld = sPaper / sWorld;
 		var worldToPaper = 1 / paperToWorld;
@@ -379,7 +421,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var hpxWorld = metersToPixels(this.map, hmmWorld / 1000, routeCenter);
 		var ppxWorld = metersToPixels(this.map, pmmWorld / 1000, routeCenter);
 
-		var rects = this.getRouteRectangles(this.line.getLatLngs(), wpxWorld, hpxWorld, ppxWorld);
+		var rects = this.getRouteRectangles(this.line.getLatLngs(), wpxWorld, hpxWorld, ppxWorld, mix);
 
 		var dpi = Math.round(this.scaleToDPI(sWorld));
 		this.inputDPI.value = dpi;
@@ -462,7 +504,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		}
 	},
 
-	getRouteRectangles: function(ll, w, h, p) {
+	getRouteRectangles: function(ll, w, h, p, mix) {
 		if (ll.length == 0) {
 			return;
 		}
@@ -470,7 +512,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		for (var i = 0; i < l.length; i++) {
 			l[i] = this.map.project(l[i]); // geo to pixel coords (so paper size becomes meaningful)
 		}
-		const [rects, intersections] = coverLineWithRectangles(l, w-2*p, h-2*p);
+		const [rects, intersections] = coverLineWithRectangles(l, w-2*p, h-2*p, mix);
 
 		// convert from pixel coordinates back to geographical coordinates
 		// TODO: better to not convert yet?
