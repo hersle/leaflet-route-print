@@ -64,7 +64,9 @@ class Rectangle {
 		} else if (d.x > 0 && d.y < 0) { // south-east quadrant
 			maxRect = new Rectangle(L.point(this.xmin, this.ymax-h), L.point(this.xmin+w, this.ymax));
 		}
-		return this.extend(maxRect.intersection(s));
+		var intersection = maxRect.intersection(s);
+		console.assert(intersection != undefined, "segment-rectangle intersection test failed");
+		return [this.extend(maxRect.intersection(s)), intersection];
 	}
 
 	pad(p) {
@@ -135,11 +137,7 @@ function coverLineWithRectangle(l, w, h, i1) {
 		if (grect.isSmallerThan(w, h)) { // whole segment fits in rectangle [w,h]
 			rect = grect;
 		} else { // segment must be divided to fit in rectangle [w,h]
-			rect = rect.extendBounded(segment, w, h); // create rectangle as big as possible in the direction of the segment
-			intersection = rect.intersection(segment); // find where it intersects the segment
-			if (intersection == undefined) {
-				intersection = l[i]; // intersection test can fail (due to numerical issues) - in this case the segment endpoint l[i] is very close
-			}
+			[rect, intersection] = rect.extendBounded(segment, w, h); // create rectangle as big as possible in the direction of the segment
 			segment = new Segment(l[i-1], intersection);
 		}
 		dist += segment.length();
