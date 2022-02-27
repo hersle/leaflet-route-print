@@ -192,14 +192,12 @@ L.Control.PrintRouteControl = L.Control.extend({
 		for (var n = 0; n <= 6; n++) {
 			var w = Math.floor(841  / 2**(n/2));
 			var h = Math.floor(1189 / 2**(n/2));
-			this.paperSizes.push({name: `A${n}P`, width: w, height: h});
-			this.paperSizes.push({name: `A${n}L`, width: h, height: w});
+			this.paperSizes.push({name: `A${n}`, width: w, height: h});
 		}
 		for (var n = 0; n <= 6; n++) {
 			var w = Math.floor(1000 / 2**(n/2));
 			var h = Math.floor(1414 / 2**(n/2));
-			this.paperSizes.push({name: `B${n}P`, width: w, height: h});
-			this.paperSizes.push({name: `B${n}L`, width: h, height: w});
+			this.paperSizes.push({name: `B${n}`, width: w, height: h});
 		}
 	},
 
@@ -229,7 +227,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.inputWidth = createElement("input", {id: "input-size-width", type: "number", defaultValue: 210}, {width: "3.5em"});
 		this.inputHeight = createElement("input", {id: "input-size-height", type: "number", defaultValue: 297}, {width: "3.5em"});
 		this.inputPreset  = createElement("select", {id: "input-size-preset"});
-		this.inputPreset.append(new Option("free"));
+		this.inputPreset.append(new Option("-"));
 		for (var paperSize of this.paperSizes) {
 			this.inputPreset.append(new Option(paperSize.name));
         }
