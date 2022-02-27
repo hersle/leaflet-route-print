@@ -153,8 +153,10 @@ function coverLineWithRectangles(l, w, h, mix) {
 		var [rect, i2, intersection, dist] = coverLineWithRectangle(l, w, h, i1);
 		if (mix) {
 			var [recthw, i2hw, intersectionhw, disthw] = coverLineWithRectangle(l, h, w, i1);
+			rect.rotated = false;
 			if (disthw > dist) {
 				[rect, i2, intersection, dist] = [recthw, i2hw, intersectionhw, disthw];
+				rect.rotated = true;
 			}
 		}
 		rects.push(rect);
@@ -456,12 +458,12 @@ L.Control.PrintRouteControl = L.Control.extend({
 					var rect = rects[pages[i]];
 					var w, h;
 					// recognize mixed portrait/landscape rectangles
-					if ((rect.width/rect.height-wmmPaper/hmmPaper)**2 < (rect.height/rect.width-wmmPaper/hmmPaper)**2) {
-						w = wmmPaper;
-						h = hmmPaper;
-					} else {
+					if (mix && rect.rotated) {
 						w = hmmPaper;
 						h = wmmPaper;
+					} else {
+						w = wmmPaper;
+						h = hmmPaper;
 					}
 					var orientation = w > h ? "landscape" : "portrait";
 					if (i == 0) {
