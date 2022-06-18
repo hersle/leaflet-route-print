@@ -321,7 +321,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		}.bind(this));
 		this.inputOrientation.addEventListener("change", this.previewRoute.bind(this));
 		this.inputMargin.addEventListener("change", this.previewRoute.bind(this));
-		this.inputPrint.addEventListener("click", this.printRoute.bind(this));
+		this.inputPrint.onclick = this.printRoute.bind(this);
 		this.map.addEventListener("zoomend", this.previewRoute.bind(this));
 
 		this.previewRoute(); // TODO: can i do this here after saving all input fields in the class?
@@ -372,6 +372,36 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var sWorldy = 1 * pixelsToMeters(this.map, hpxWorld, this.line.getCenter()) * 1000 / hmmPaper;
 		var sWorld = (sWorldx + sWorldy) / 2;
 		return sWorld;
+	},
+
+	modifyMapState: function() {
+		this.map.removeLayer(this.rectGroup);
+		var originalWidth = this.map.getContainer().style.width;
+		var originalHeight = this.map.getContainer().style.height;
+
+		this.inputPrint.value = "Abort";
+		var originalPrintHandler = this.inputPrint.onclick;
+		this.inputPrint.onclick = function () {
+			this.abortFlag = true;
+		}.bind(this);
+
+		return {
+			width: originalWidth,
+			height: originalHeight,
+			printHandler: originalPrintHandler,
+		};
+	},
+
+	restoreMapState: function (state) {
+		this.map.getContainer().style.width = state.width;
+		this.map.getContainer().style.height = state.height;
+
+		this.inputPrint.value = "Print";
+		this.inputPrint.onclick = state.printHandler;
+
+		this.map.invalidateSize();
+
+		this.map.addLayer(this.rectGroup);
 	},
 
 	printRouteWrapper: async function(print) {
@@ -442,59 +472,54 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		if (print) {
 			var printfunc = function() {
-				var pdf;
-				for (var i = 0; i < pages.length; i++) {
-					var rect = rects[pages[i]];
-					var w, h;
-					// recognize mixed portrait/landscape rectangles
-					if (mix && rect.rotated) {
-						w = hmmPaper;
-						h = wmmPaper;
-					} else {
-						w = wmmPaper;
-						h = hmmPaper;
+				if (!this.abortFlag) {
+					var pdf;
+					for (var i = 0; i < pages.length; i++) {
+						var rect = rects[pages[i]];
+						var w, h;
+						// recognize mixed portrait/landscape rectangles
+						if (mix && rect.rotated) {
+							w = hmmPaper;
+							h = wmmPaper;
+						} else {
+							w = wmmPaper;
+							h = hmmPaper;
+						}
+						var orientation = w > h ? "landscape" : "portrait";
+						if (i == 0) {
+							// adding first page is the same as creating the PDF
+							pdf = new jspdf.jsPDF({format: [w, h], orientation: orientation, compress: true});
+							pdf.setFontSize(15);
+						}  else {
+							// add more pages
+							pdf.addPage([w, h], orientation);
+						}
+						var img = this.imgDataUrls[i];
+						pdf.addImage(img, this.imageFormat, 0, 0, w, h, undefined, "FAST");
+						pdf.text("Printed with hersle.github.io/leaflet-route-print", 0+5, 0+5, {align: "left", baseline: "top"});
+						pdf.text(`Page ${pages[i]+1} of ${rects.length}`, w-5, 0+5, {align: "right", baseline: "top"});
+						pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, h-5, {align: "left", baseline: "bottom"});
+						var attrib = this.getAttribution();
+						if (attrib) {
+							pdf.text(attrib, w-5, h-5, {align: "right", baseline: "bottom"});
+						}
 					}
-					var orientation = w > h ? "landscape" : "portrait";
-					if (i == 0) {
-						// adding first page is the same as creating the PDF
-						pdf = new jspdf.jsPDF({format: [w, h], orientation: orientation, compress: true});
-						pdf.setFontSize(15);
-					}  else {
-						// add more pages
-						pdf.addPage([w, h], orientation);
-					}
-					var img = this.imgDataUrls[i];
-					pdf.addImage(img, this.imageFormat, 0, 0, w, h, undefined, "FAST");
-					pdf.text("Printed with hersle.github.io/leaflet-route-print", 0+5, 0+5, {align: "left", baseline: "top"});
-					pdf.text(`Page ${pages[i]+1} of ${rects.length}`, w-5, 0+5, {align: "right", baseline: "top"});
-					pdf.text(`Scale ${sPaper} : ${sWorld}`, 0+5, h-5, {align: "left", baseline: "bottom"});
-					var attrib = this.getAttribution();
-					if (attrib) {
-						pdf.text(attrib, w-5, h-5, {align: "right", baseline: "bottom"});
-					}
+					// to decide download filename: https://stackoverflow.com/a/56923508/3527139
+					var blob = pdf.output("blob", {filename: "route.pdf"});
+					this.downloadLink.href = URL.createObjectURL(blob);
+					this.downloadLink.click(); // download
 				}
-				// to decide download filename: https://stackoverflow.com/a/56923508/3527139
-				var blob = pdf.output("blob", {filename: "route.pdf"});
-				this.downloadLink.href = URL.createObjectURL(blob);
-				this.downloadLink.click(); // download
+
+				this.restoreMapState(oldState);
+				document.removeEventListener("printcomplete", printfunc);
 				this.setPrintStatus(); // empty
 
 				this.imgDataUrls = []; // reset for next printing
-
-				this.map.getContainer().style.width = originalWidth;
-				this.map.getContainer().style.height = originalHeight;
-				this.map.invalidateSize();
-
-				this.map.addLayer(this.rectGroup);
-
-				document.removeEventListener("printcomplete", printfunc);
+				this.abortFlag = false;
 			}.bind(this);
+
+			var oldState = this.modifyMapState();
 			document.addEventListener("printcomplete", printfunc);
-
-			this.map.removeLayer(this.rectGroup);
-
-			var originalWidth = this.map.getContainer().style.width;
-			var originalHeight = this.map.getContainer().style.height;
 
 			this.printMap(rects, pages);
 		}
@@ -563,7 +588,6 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 			if (i == pages.length) {
 				this.enableInput();
-				this.inputPrint.disabled = false;
 				document.dispatchEvent(new Event("printcomplete"));
 				return;
 			}
@@ -579,6 +603,14 @@ L.Control.PrintRouteControl = L.Control.extend({
 			this.map.setView(c, this.map.getZoom(), {animate: false});
 
 			leafletImage(this.map, function(err, canvas) {
+				if (this.abortFlag) {
+					// when user clicks abort, this aborts the printing when it reaches the next page
+					// TODO: find a way to abort immediately!
+					this.enableInput();
+					document.dispatchEvent(new Event("printcomplete"));
+					return;
+				}
+
 				if (this.imageFormat == "jpeg") {
 					// make canvas background white, since jpeg does not support white background
 					// https://stackoverflow.com/a/56085861/3527139
@@ -593,7 +625,6 @@ L.Control.PrintRouteControl = L.Control.extend({
 			}.bind(this));
 		}.bind(this);
 
-		this.inputPrint.disabled = true;
 		this.disableInput();
 		printRect(0);
 	},
