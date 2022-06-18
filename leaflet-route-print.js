@@ -566,6 +566,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 			this.setPrintStatus(`Downloading page ${p+1} of ${rects.length} ...`);
 
 			if (i == pages.length) {
+				this.enableInput();
 				this.inputPrint.disabled = false;
 				document.dispatchEvent(new Event("printcomplete"));
 				return;
@@ -597,7 +598,30 @@ L.Control.PrintRouteControl = L.Control.extend({
 		}.bind(this);
 
 		this.inputPrint.disabled = true;
+		this.disableInput();
 		printRect(0);
+	},
+
+	disableInput: function() {
+		console.log("input disabled");
+		this.map.boxZoom.disable();
+		this.map.doubleClickZoom.disable();
+		this.map.dragging.disable();
+		this.map.keyboard.disable();
+		this.map.scrollWheelZoom.disable();
+		if (map.tapHold) this.map.tapHold.disable(); // specific to mobile Safari
+		this.map.touchZoom.disable();
+	},
+
+	enableInput: function() {
+		console.log("input enabled");
+		this.map.boxZoom.enable();
+		this.map.doubleClickZoom.enable();
+		this.map.dragging.enable();
+		this.map.keyboard.enable();
+		this.map.scrollWheelZoom.enable();
+		if (map.tapHold) this.map.tapHold.enable(); // specific to mobile Safari
+		this.map.touchZoom.enable();
 	},
 
 	setImageFormat: function(format) {
