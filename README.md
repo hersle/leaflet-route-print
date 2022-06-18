@@ -17,7 +17,7 @@ import * as L from "./leaflet.js";
 import "./leaflet-route-print.js";
 
 // Initialize and configure map
-var map = L.map("map", {preferCanvas: true); // IMPORTANT: preferCanvas must be true!
+var map = L.map("map", {preferCanvas: true}); // IMPORTANT: preferCanvas must be true!
 ...
 
 // Create route printing control and add it to the map
