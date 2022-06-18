@@ -256,7 +256,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		p.append(l, this.inputMargin, " mm ");
 		container.append(p);
 
-		this.inputPrint = createElement("input", {id: "input-print", type: "button", value: "Print"}, {display: "inline"});
+		this.inputPrint = createElement("input", {id: "input-print", type: "button", value: "Print"}, {display: "inline", fontWeight: "bold", backgroundColor: "limegreen", borderRadius: "5px", border: "none"});
 		this.inputPrint.title = "Print the map as a PDF file and automatically open it when complete.";
 		this.printStatus = createElement("span", {});
 		this.inputPages = createElement("input", {id: "input-pages", type: "text"});
@@ -375,21 +375,22 @@ L.Control.PrintRouteControl = L.Control.extend({
 	},
 
 	modifyMapState: function() {
+		var oldState = {
+			width: this.map.getContainer().style.width,
+			height: this.map.getContainer().style.height,
+			printHandler: this.inputPrint.onclick,
+			printBackgroundColor: this.inputPrint.style.backgroundColor,
+		};
+
 		this.map.removeLayer(this.rectGroup);
-		var originalWidth = this.map.getContainer().style.width;
-		var originalHeight = this.map.getContainer().style.height;
 
 		this.inputPrint.value = "Abort";
-		var originalPrintHandler = this.inputPrint.onclick;
+		this.inputPrint.style.backgroundColor = "red";
 		this.inputPrint.onclick = function () {
 			this.abortFlag = true;
 		}.bind(this);
 
-		return {
-			width: originalWidth,
-			height: originalHeight,
-			printHandler: originalPrintHandler,
-		};
+		return oldState;
 	},
 
 	restoreMapState: function (state) {
@@ -397,6 +398,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.map.getContainer().style.height = state.height;
 
 		this.inputPrint.value = "Print";
+		this.inputPrint.style.backgroundColor = state.printBackgroundColor;
 		this.inputPrint.onclick = state.printHandler;
 
 		this.map.invalidateSize();
