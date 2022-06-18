@@ -553,6 +553,12 @@ L.Control.PrintRouteControl = L.Control.extend({
 			L.rectangle(bigRect, {stroke: true, weight: 1, opacity: this.rectStrokeOpacity, color: this.rectStrokeColor, fillColor: this.rectFillColor, fillOpacity: this.rectFillOpacity}).addTo(this.rectGroup);
 			L.rectangle(smallRect, {stroke: true, weight: 1, opacity: this.rectStrokeOpacity, color: this.rectStrokeColor, fill: false}).addTo(this.rectGroup);
 		}
+
+		// pad rectangles with margin
+		for (var i = 0; i < rects.length; i++) {
+			rects[i] = rects[i].pad(p);
+		}
+
 		// show intersection points (only for debugging purposes)
 		// TODO: print intersection points at page boundaries to easily "follow" the map
 		// TODO: remove them completely
