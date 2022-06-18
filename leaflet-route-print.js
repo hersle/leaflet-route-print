@@ -427,20 +427,14 @@ L.Control.PrintRouteControl = L.Control.extend({
 			var p1 = parseInt(s[0]);
 			var p2 = parseInt(s.length == 2 ? s[1] : s[0]);
 			for (var p = p1; p <= p2; p++) {
-				pages.push(p);
+				pages.push(p-1); // 0-index
 			}
-		}
-		for (var i = 0; i < pages.length; i++) {
-			pages[i] -= 1; // 0-index
 		}
 
 		// indicate print quality with color
 		var dpi1 = 0, hue1 = 0;     // horrible print quality  (red)
 		var dpi2 = 300, hue2 = 140; // excellent print quality (green)
-		var hue = Math.floor((hue2 - hue1) * (dpi - dpi1) / (dpi2 - dpi1));
-		if (hue > hue2) {
-			hue = hue2; // it cannot get any better than "excellent"
-		}
+		var hue = Math.min(Math.floor((hue2 - hue1) * (dpi - dpi1) / (dpi2 - dpi1)), hue2); // restrict to hue2
 		this.inputDPI.style.color = `hsl(${hue}, 100%, 50%)`;
 
 		var dpi = Math.floor((wpxWorld / (wmmPaper / 25.4) + hpxWorld / (hmmPaper / 25.4)) / 2);
@@ -483,7 +477,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 				var blob = pdf.output("blob", {filename: "route.pdf"});
 				this.downloadLink.href = URL.createObjectURL(blob);
 				this.downloadLink.click(); // download
-				this.setPrintStatus();
+				this.setPrintStatus(); // empty
 
 				this.imgDataUrls = []; // reset for next printing
 
@@ -532,7 +526,9 @@ L.Control.PrintRouteControl = L.Control.extend({
 			L.rectangle(bigRect, {stroke: true, weight: 1, opacity: this.rectStrokeOpacity, color: this.rectStrokeColor, fillColor: this.rectFillColor, fillOpacity: this.rectFillOpacity}).addTo(this.rectGroup);
 			L.rectangle(smallRect, {stroke: true, weight: 1, opacity: this.rectStrokeOpacity, color: this.rectStrokeColor, fill: false}).addTo(this.rectGroup);
 		}
-		// show intersection points (only for debugging purposes) TODO: remove them completely
+		// show intersection points (only for debugging purposes)
+		// TODO: print intersection points at page boundaries to easily "follow" the map
+		// TODO: remove them completely
 		if (DEBUG) {
 			for (const p of intersections) {
 				L.circleMarker(p, {radius: 5, stroke: false, color: "black", opacity: 1, fillOpacity: 1.0}).addTo(this.rectGroup);
