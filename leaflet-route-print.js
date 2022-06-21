@@ -556,7 +556,9 @@ L.Control.PrintRouteControl = L.Control.extend({
 
 		// pad rectangles with margin
 		for (var i = 0; i < rects.length; i++) {
+			var rotated = rects[i].rotated; // property is destroyed in the padding
 			rects[i] = rects[i].pad(p);
+			rects[i].rotated = rotated;
 		}
 
 		// show intersection points (only for debugging purposes)
