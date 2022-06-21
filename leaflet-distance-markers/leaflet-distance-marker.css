@@ -1,0 +1,11 @@
+.dist-marker {
+	width: 210px;
+	height: 210px;
+	line-height: 210px;
+	font-size: 90px;
+	border: 0px solid #777;
+	border-radius: 1000px;
+	text-align: center;
+	color: #000;
+	background: #fff;
+}

@@ -134,6 +134,7 @@ L.Control.MiscSelector = L.Control.extend({
 			// remove old line from map and add a new one
 			map.removeLayer(routeLine);
 			routeLine = L.polyline(newpoints);
+			routeLine = L.polyline(newpoints, {distanceMarkers: {showAll: 7, offset: 50000, iconSize: [40, 40], color: document.getElementById("input-color").value}});
 			routeLine.addTo(map);
 			routePrinter.setRoute(routeLine);
 		});
@@ -164,7 +165,7 @@ L.Control.MiscSelector = L.Control.extend({
 	},
 });
 
-var routeLine = L.polyline(points);
+var routeLine = L.polyline(points, {distanceMarkers: {showAll: 7, offset: 50000, iconSize: [40, 40]}});
 routeLine.addTo(map);
 
 var routePrinter = new L.Control.PrintRouteControl();
