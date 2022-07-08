@@ -17,7 +17,7 @@ import * as L from "./leaflet.js";
 import "./leaflet-route-print.js";
 
 // Initialize and configure map
-var map = L.map("map", {preferCanvas: true}); // IMPORTANT: preferCanvas must be true!
+var map = L.map("map");
 ...
 
 // Create route printing control and add it to the map
@@ -25,7 +25,8 @@ var routePrinter = new L.Control.PrintRouteControl();
 routePrinter.addTo(map);
 
 // Set the Leaflet Polyline to print
-var line = L.polyline(...);
+// IMPORTANT: elements to be included in the print must be rendered with Leaflet's Canvas renderer!
+var line = L.polyline(..., {renderer: L.canvas()});
 routePrinter.setRoute(line);
 
 // Set the format of images in the generated PDF
