@@ -177,6 +177,7 @@ map.addControl(new L.Control.MiscSelector([
 	createNamedTileLayer("Norgeskart (toporaster4)", "https://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=toporaster4&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
 	createNamedTileLayer("Norgeskart (topo4)", "https://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
 	createNamedTileLayer("Norgeskart (topo4 grå)", "https://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4graatone&zoom={z}&x={x}&y={y}", "Kartverket", "https://www.kartverket.no"),
+	createNamedTileLayer("Norgeskart (flyfoto)", "https://opencache.statkart.no/gatekeeper/gk/gk.open_nib_web_mercator_wmts_v2?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=Nibcache_web_mercator_v2&STYLE=default&FORMAT=image/jpgpng&TILEMATRIXSET=default028mm&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}", "Kartverket", "https://www.kartverket.no"),
 	createNamedTileLayer("OpenTopoMap", "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", "OpenTopoMap", "https://opentopomap.org/about"),
 	createNamedTileLayer("TopPlusOpen", "https://sgx.geodatenzentrum.de/wmts_topplus_open/tile/1.0.0/web/default/WEBMERCATOR/{z}/{y}/{x}.png", "Bundesamt für Kartographie und Geodäsie", "https://sg.geodatenzentrum.de/web_public/Datenquellen_TopPlus_Open.pdf"),
 	createNamedTileLayer("OpenCycleMap", "https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=ac5281c76eeb4c2c935ae98bb6da641c ", "Thunderforest", "https://www.thunderforest.com/"),
