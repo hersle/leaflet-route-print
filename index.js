@@ -130,10 +130,8 @@ L.Control.MiscSelector = L.Control.extend({
 				}
 			}
 
-			// remove old line from map and add a new one
-			map.removeLayer(routeLine);
-			routeLine = L.polyline(newpoints, {renderer: L.canvas()});
-			routeLine.addTo(map);
+			// update line
+			routeLine.setLatLngs(newpoints);
 			routePrinter.setRoute(routeLine);
 		});
 
