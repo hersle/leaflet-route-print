@@ -11,3 +11,34 @@ input  { display: table-cell; }
 button { display: table-cell; }
 
 /* .leaflet-tile { border: solid black 5px; } */ /* show tile borders */
+
+/* Control panel styling */
+.leaflet-bar.leaflet-control {
+	background-color: rgba(255, 255, 255, 0.9) !important;
+	backdrop-filter: blur(10px);
+	border-radius: 10px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	transform: translateX(0);
+	transition: transform 0.3s ease;
+	padding: 10px;
+	margin: 10px;
+}
+
+.leaflet-bar.leaflet-control.collapsed {
+	transform: translateX(-100%);
+}
+
+/* Route style controls */
+#input-route-color {
+	width: 50px !important;
+	height: 30px !important;
+	padding: 0;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+#input-route-width,
+#input-route-opacity {
+	width: 100px !important;
+}

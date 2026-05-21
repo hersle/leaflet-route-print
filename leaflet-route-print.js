@@ -187,6 +187,11 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.setImageFormat("jpeg");
 		this.setStrokeColor("gray");
 		this.setFillColor("gray");
+		
+		// Route style defaults
+		this.routeColor = "#ff0000";
+		this.routeWidth = 5;
+		this.routeOpacity = 0.8;
 
 		// list paper sizes from https://en.wikipedia.org/wiki/Paper_size#Overview_of_ISO_paper_sizes
 		this.paperSizes = [];
@@ -217,12 +222,11 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var container = createElement("form", {className: "text-input"});
 
 		this.inputScale = createElement("input", {id: "input-scale-world", type: "number", defaultValue: 100000}, {width: "6em"});
-		this.inputDPI = createElement("span", {id: "input-dpi"}, {fontWeight: "bold"});
 		var l = createElement("label", {innerHTML: "Scale:", for: this.inputScale.id});
-		l.title = "Paper-to-World scale and resolution of the printed raster map in Dots Per Inch (DPI). The color of the DPI value indicates the expected print quality, from worst (0, red) to best (300, green). Hover on the labels below to see more help information.";
+		l.title = "Paper-to-World scale. Hover on the labels below to see more help information.";
 		l.style.cursor = "help";
 		var p = createElement("p");
-		p.append(l, "1 : ", this.inputScale, " (", this.inputDPI, ")");
+		p.append(l, "1 : ", this.inputScale);
 		container.append(p);
 
 		this.inputWidth = createElement("input", {id: "input-size-width", type: "number", defaultValue: 210}, {width: "3.5em"});
@@ -256,6 +260,26 @@ L.Control.PrintRouteControl = L.Control.extend({
 		p.append(l, this.inputMargin, " mm ");
 		container.append(p);
 
+		// Route style controls
+		this.inputRouteColor = createElement("input", {id: "input-route-color", type: "color", defaultValue: "#ff0000"}, {width: "50px", height: "30px"});
+		this.inputRouteWidth = createElement("input", {id: "input-route-width", type: "range", min: 1, max: 20, defaultValue: 5}, {width: "100px"});
+		this.inputRouteOpacity = createElement("input", {id: "input-route-opacity", type: "range", min: 0, max: 1, step: 0.1, defaultValue: 0.8}, {width: "100px"});
+		
+		l = createElement("label", {innerHTML: "Route Color:", for: this.inputRouteColor.id});
+		p = createElement("p");
+		p.append(l, this.inputRouteColor);
+		container.append(p);
+		
+		l = createElement("label", {innerHTML: "Route Width:", for: this.inputRouteWidth.id});
+		p = createElement("p");
+		p.append(l, this.inputRouteWidth, " px");
+		container.append(p);
+		
+		l = createElement("label", {innerHTML: "Route Opacity:", for: this.inputRouteOpacity.id});
+		p = createElement("p");
+		p.append(l, this.inputRouteOpacity);
+		container.append(p);
+
 		this.inputPrint = createElement("input", {id: "input-print", type: "button", value: "Print"}, {display: "inline", fontWeight: "bold", backgroundColor: "limegreen", borderRadius: "5px", border: "none"});
 		this.inputPrint.title = "Print the map as a PDF file and automatically open it when complete.";
 		this.printStatus = createElement("span", {});
@@ -286,19 +310,21 @@ L.Control.PrintRouteControl = L.Control.extend({
 		var divButton = createElement("div", {}, {display: "flex", justifyContent: "space-between", borderBottom: "1px solid black"}); // float left and right using https://stackoverflow.com/a/10277235
 
 		var header = createElement("p", {innerHTML: "<b>Print route settings</b>"}, {margin: "0", fontSize: "13px", padding: divControls.style.borderSpacing}); // padding should be same as borderSpacing in divControls
-		var button = createElement("a", {innerHTML: "✖", href: "#"}, {display: "inline-block", width: "30px", height: "30px", lineHeight: "30px", fontSize: "22px"});
-		var help = createElement("a", {innerHTML: "?", title: "You get what you see! Zoom the map to your preferred level of detail, modify these settings and hit Print. The color of the DPI value indicates the print quality.", href: "#"}, {display: "inline-block", width: "30px", height: "30px", lineHeight: "30px", fontSize: "22px", cursor: "help"});
+		var button = createElement("a", {innerHTML: "→", href: "#"}, {display: "inline-block", width: "30px", height: "30px", lineHeight: "30px", fontSize: "22px"});
+		var help = createElement("a", {innerHTML: "?", title: "You get what you see! Zoom the map to your preferred level of detail, modify these settings and hit Print.", href: "#"}, {display: "inline-block", width: "30px", height: "30px", lineHeight: "30px", fontSize: "22px", cursor: "help"});
 		button.addEventListener("click", function() {
 			if (divControls.style.display == "none") {
 				divControls.style.display = "block";
 				header.style.display = "block";
-				button.innerHTML = "✖";
+				button.innerHTML = "←";
 				help.style.display = "inline-block";
+				divWrapper.classList.remove("collapsed");
 			} else {
 				divControls.style.display = "none";
 				header.style.display = "none";
-				button.innerHTML = "P";
+				button.innerHTML = "→";
 				help.style.display = "none";
+				divWrapper.classList.add("collapsed");
 			}
 		});
 		var buttonWrapper = createElement("div", {});
@@ -323,6 +349,11 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.inputMargin.addEventListener("change", this.previewRoute.bind(this));
 		this.inputPrint.onclick = this.printRoute.bind(this);
 		this.map.addEventListener("zoomend", this.previewRoute.bind(this));
+		
+		// Route style event listeners
+		this.inputRouteColor.addEventListener("input", this.updateRouteStyle.bind(this));
+		this.inputRouteWidth.addEventListener("input", this.updateRouteStyle.bind(this));
+		this.inputRouteOpacity.addEventListener("input", this.updateRouteStyle.bind(this));
 
 		this.previewRoute(); // TODO: can i do this here after saving all input fields in the class?
 
@@ -426,26 +457,33 @@ L.Control.PrintRouteControl = L.Control.extend({
 			return;
 		}
 
-		var sPaper = 1;
-		var sWorld = parseInt(this.inputScale.value);
+		// Fixed 600 DPI calculation
+		var FIXED_DPI = 600;
 		var wmmPaper = parseInt(w);
 		var hmmPaper = parseInt(h);
 		var pmmPaper = parseInt(this.inputMargin.value);
-		var paperToWorld = sPaper / sWorld;
-		var worldToPaper = 1 / paperToWorld;
-		var wmmWorld = wmmPaper * (sWorld / sPaper);
-		var hmmWorld = hmmPaper * (sWorld / sPaper);
-		var pmmWorld = pmmPaper * (sWorld / sPaper);
-
+		
+		// Calculate pixel dimensions for 600 DPI
+		var wpxPaper = (wmmPaper / 25.4) * FIXED_DPI;
+		var hpxPaper = (hmmPaper / 25.4) * FIXED_DPI;
+		var ppxPaper = (pmmPaper / 25.4) * FIXED_DPI;
+		
+		// Calculate the scale that would give us 600 DPI
 		var routeCenter = this.line.getCenter();
+		var wmmWorld = (wpxPaper / FIXED_DPI) * 25.4;
+		var hmmWorld = (hpxPaper / FIXED_DPI) * 25.4;
+		var pmmWorld = (ppxPaper / FIXED_DPI) * 25.4;
+		
+		// Convert to pixels at current zoom level
 		var wpxWorld = metersToPixels(this.map, wmmWorld / 1000, routeCenter);
 		var hpxWorld = metersToPixels(this.map, hmmWorld / 1000, routeCenter);
 		var ppxWorld = metersToPixels(this.map, pmmWorld / 1000, routeCenter);
 
 		var rects = this.getRouteRectangles(this.line.getLatLngs(), wpxWorld, hpxWorld, ppxWorld, mix);
 
-		var dpi = Math.round(this.scaleToDPI(sWorld));
-		this.inputDPI.innerHTML = `${dpi} DPI`;
+		// Update scale input to reflect the calculated scale
+		var sWorld = Math.round(pixelsToMeters(this.map, wpxWorld, routeCenter) * 1000 / wmmPaper);
+		this.inputScale.value = sWorld;
 
 		if (this.autoPages) {
 			this.inputPages.value = `1-${rects.length}`;
@@ -463,14 +501,7 @@ L.Control.PrintRouteControl = L.Control.extend({
 			}
 		}
 
-		// indicate print quality with color
-		var dpi1 = 0, hue1 = 0;     // horrible print quality  (red)
-		var dpi2 = 300, hue2 = 140; // excellent print quality (green)
-		var hue = Math.min(Math.floor((hue2 - hue1) * (dpi - dpi1) / (dpi2 - dpi1)), hue2); // restrict to hue2
-		this.inputDPI.style.color = `hsl(${hue}, 100%, 50%)`;
-
-		var dpi = Math.floor((wpxWorld / (wmmPaper / 25.4) + hpxWorld / (hmmPaper / 25.4)) / 2);
-		this.setPrintStatus(`at ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels`);
+		this.setPrintStatus(`at ${Math.floor(wpxWorld)} x ${Math.floor(hpxWorld)} pixels (600 DPI)`);
 
 		if (print) {
 			var printfunc = function() {
@@ -588,6 +619,19 @@ L.Control.PrintRouteControl = L.Control.extend({
 		this.line = line;
 		this.map.fitBounds(this.line.getBounds(), {animate: false});
 		this.hasRoute = true;
+		
+		// Initialize route style
+		this.line.setStyle({
+			color: this.routeColor,
+			weight: this.routeWidth,
+			opacity: this.routeOpacity
+		});
+		
+		// Set input values to match current style
+		if (this.inputRouteColor) this.inputRouteColor.value = this.routeColor;
+		if (this.inputRouteWidth) this.inputRouteWidth.value = this.routeWidth;
+		if (this.inputRouteOpacity) this.inputRouteOpacity.value = this.routeOpacity;
+		
 		this.previewRoute();
 	},
 
@@ -676,5 +720,34 @@ L.Control.PrintRouteControl = L.Control.extend({
 	setStrokeColor: function(color, opacity = 1.0) {
 		this.rectStrokeColor = color;
 		this.rectStrokeOpacity = opacity;
+	},
+	
+	updateRouteStyle: function() {
+		// Update the route polyline style based on current input values
+		this.routeColor = this.inputRouteColor.value;
+		this.routeWidth = parseInt(this.inputRouteWidth.value);
+		this.routeOpacity = parseFloat(this.inputRouteOpacity.value);
+		
+		if (this.line) {
+			this.line.setStyle({
+				color: this.routeColor,
+				weight: this.routeWidth,
+				opacity: this.routeOpacity
+			});
+		}
+	},
+	
+	setRouteStyle: function(color, width, opacity) {
+		this.routeColor = color || this.routeColor;
+		this.routeWidth = width !== undefined ? width : this.routeWidth;
+		this.routeOpacity = opacity !== undefined ? opacity : this.routeOpacity;
+		
+		if (this.line) {
+			this.line.setStyle({
+				color: this.routeColor,
+				weight: this.routeWidth,
+				opacity: this.routeOpacity
+			});
+		}
 	}
 });
